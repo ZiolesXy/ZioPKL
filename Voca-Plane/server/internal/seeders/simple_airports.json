@@ -1,0 +1,61 @@
+{
+    "EDWG": {
+        "icao": "EDWG",
+        "iata": "AGE",
+        "name": "Wangerooge Airport",
+        "city": "Wangerooge",
+        "state": "Lower-Saxony",
+        "country": "DE",
+        "elevation": 7,
+        "lat": 53.7827796936,
+        "lon": 7.9138889313,
+        "tz": "Europe/Berlin"
+    },
+    "EHAM": {
+        "icao": "EHAM",
+        "iata": "AMS",
+        "name": "Amsterdam Airport Schiphol",
+        "city": "Amsterdam",
+        "state": "North-Holland",
+        "country": "NL",
+        "elevation": -11,
+        "lat": 52.3086013794,
+        "lon": 4.7638897896,
+        "tz": "Europe/Amsterdam"
+    },
+    "3IS8": {
+        "icao": "3IS8",
+        "iata": "BDF",
+        "name": "Rinkenberger Restricted Landing Area",
+        "city": "Bradford",
+        "state": "Illinois",
+        "country": "US",
+        "elevation": 808,
+        "lat": 41.2308998108,
+        "lon": -89.6156997681,
+        "tz": "America/Chicago"
+    },"AGGC": {
+        "icao": "AGGC",
+        "iata": "CHY",
+        "name": "Choiseul Bay Airport",
+        "city": "Default",
+        "state": "Choiseul",
+        "country": "SB",
+        "elevation": 0,
+        "lat": -6.711944,
+        "lon": 156.396111,
+        "tz": "Pacific/Guadalcanal"
+    },
+    "7NC2": {
+        "icao": "7NC2",
+        "iata": "DUF",
+        "name": "Pine Island Airport",
+        "city": "Corolla",
+        "state": "North Carolina",
+        "country": "US",
+        "elevation": 16,
+        "lat": 36.2535018921,
+        "lon": -75.7884979248,
+        "tz": "America/New_York"
+    }
+}

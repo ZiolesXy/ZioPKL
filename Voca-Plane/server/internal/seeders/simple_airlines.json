@@ -1,0 +1,32 @@
+[
+    {
+        "name": "Air Excursion, LLC",
+        "code": "X4",
+        "is_lowcost": false,
+        "logo_url": "https://pics.avs.io/200/200/X4@2x.png"
+    },
+    {
+        "name": "Vanilla Air",
+        "code": "JW",
+        "is_lowcost": true,
+        "logo_url": "https://pics.avs.io/200/200/JW@2x.png"
+    },
+    {
+        "name": "Olympic Air",
+        "code": "OA",
+        "is_lowcost": false,
+        "logo_url": "https://pics.avs.io/200/200/OA@2x.png"
+    },
+    {
+        "name": "Toki Air",
+        "code": "BV",
+        "is_lowcost": true,
+        "logo_url": "https://pics.avs.io/200/200/BV@2x.png"
+    },
+    {
+        "name": "Brussels Airlines",
+        "code": "SN",
+        "is_lowcost": false,
+        "logo_url": "https://pics.avs.io/200/200/SN@2x.png"
+    }
+]

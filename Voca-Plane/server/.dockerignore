@@ -1,0 +1,9 @@
+main
+main.exe
+*.exe
+bin/
+tmp/
+.git
+.gitignore
+Dockerfile
+docker-compose.yml
