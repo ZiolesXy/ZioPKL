@@ -22,7 +22,7 @@ import (
 )
 
 func main() {
-	log.Printf("⚙️  Starting Server...")
+	log.Println("⚙️  Starting Server...")
 	godotenv.Load()
 	cfg := config.LoadConfig()
     if cfg.GinMode == "release" {

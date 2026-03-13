@@ -39,6 +39,7 @@ func GetEnv(key, defaultVal string) string {
 }
 
 func LoadConfig() *config {
+	log.Println("⚙️  Loading Config...")
 	if err := godotenv.Load(".env"); err != nil {
 		log.Println("no .env using file found, using environment variables")
 	}
@@ -55,6 +56,7 @@ func LoadConfig() *config {
 	}
 	refreshTokenExpiry, _ := time.ParseDuration(refreshTokenExpiryStr)
 
+	log.Println("⚙️  Config Loaded")
 	return &config{
 		AppPort: GetEnv("APP_PORT", "8080"),
 
