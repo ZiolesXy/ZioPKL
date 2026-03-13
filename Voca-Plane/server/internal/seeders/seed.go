@@ -103,7 +103,7 @@ func SeedUsers(db *gorm.DB) {
 
 func SeedAirlines(db *gorm.DB) {
 	log.Println(">>> Seeding Airlines from JSON...")
-	data, err := os.ReadFile("internal/seeders/simple_airlines.json")
+	data, err := os.ReadFile("internal/seeders/airlines.json")
 	if err != nil {
 		log.Printf("Failed to read airlines.json: %v", err)
 		return
@@ -122,7 +122,7 @@ func SeedAirlines(db *gorm.DB) {
 
 func SeedAirports(db *gorm.DB) {
 	log.Println(">>> Seeding Airports from JSON...")
-	data, err := os.ReadFile("internal/seeders/simple_airports.json")
+	data, err := os.ReadFile("internal/seeders/airports.json")
 	if err != nil {
 		log.Printf("Failed to read airports.json: %v", err)
 		return
@@ -176,7 +176,7 @@ func SeedFlights(db *gorm.DB) {
 		Percent   float64
 	}
 
-	for i = 1; i <= 5; i++ {
+	for i = 1; i <= 100; i++ {
 		airline := airlines[i%len(airlines)]
 		origin := airports[i%len(airports)]
 		dest := airports[(i+1)%len(airports)]
