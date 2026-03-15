@@ -34,7 +34,7 @@ func main() {
 		cfg.MidtransIsProd,
 	)
 	
-	db := config.MySQLDatabase(cfg)
+	db := config.PostgresDatabase(cfg)
 
 	seeders.InitSeeders(db)
 
