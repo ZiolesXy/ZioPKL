@@ -26,7 +26,7 @@ export default function AirlineMonitoringPage() {
   ]
 
   return (
-    <div className="p-5 space-y-4">
+    <div className="space-y-6">
       <div className="flex flex-col space-y-2">
         <nav className="flex items-center space-x-2 text-sm text-muted-foreground">
           <Link href="/dashboard" className="hover:text-primary transition-colors">

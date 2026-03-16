@@ -99,7 +99,7 @@ export function FlightsTableData({ refreshKey }: { refreshKey?: number }) {
         description="Securely update flight schedules and configurations."
         fields={flightFields}
         columns={2}
-        maxWidth="sm:max-w-[750px]"
+        maxWidth="sm:max-w-[1100px]"
         initialData={selectedFlight}
         triggerVariant="hidden"
         onSubmit={async (data) => {

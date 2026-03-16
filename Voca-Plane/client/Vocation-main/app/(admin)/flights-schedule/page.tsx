@@ -22,7 +22,7 @@ export default function FlightSchedulePage() {
   }
 
   return (
-    <div className="p-5 space-y-4">
+    <div className="space-y-6">
       <div className="flex flex-col space-y-2">
         <nav className="flex items-center space-x-2 text-sm text-muted-foreground">
           <Link href="/dashboard" className="hover:text-primary transition-colors">
@@ -45,7 +45,7 @@ export default function FlightSchedulePage() {
             description="Tambahkan data penerbangan baru"
             fields={flightFields}
             columns={2}
-            maxWidth="sm:max-w-[700px]"
+            maxWidth="sm:max-w-[1100px]"
             triggerLabel="Add New Flight"
             triggerIcon={<PlusCircle className="h-4 w-4" />}
             onSubmit={async (data) => {
