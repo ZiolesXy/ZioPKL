@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voca Plane - Flights</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f9fafb; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+    <!-- Navbar -->
+    <nav class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex">
+                    <div class="flex-shrink-0 flex items-center">
+                        <span class="text-xl font-bold text-blue-600">Voca Plane</span>
+                    </div>
+                    <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+                        <a href="/pages/user/flights.html" class="border-blue-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Search Flights</a>
+                        <a href="/pages/user/transactions.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">My Bookings</a>
+                        <a href="/pages/user/profile.html" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Profile</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Content -->
+    <main class="flex-grow max-w-7xl mx-auto py-10 sm:px-6 lg:px-8 w-full">
+        <!-- Search Box -->
+        <div class="bg-white shadow sm:rounded-lg mb-8">
+            <div class="px-4 py-5 sm:p-6">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Search Flights</h3>
+                <form id="searchForm" class="mt-5 grid grid-cols-1 gap-y-6 sm:grid-cols-4 sm:gap-x-4">
+                    <div>
+                        <label for="origin" class="block text-sm font-medium text-gray-700">Origin Code</label>
+                        <input type="text" name="origin" id="origin" required placeholder="CGK" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md p-2 mt-1 border">
+                    </div>
+                    <div>
+                        <label for="destination" class="block text-sm font-medium text-gray-700">Destination Code</label>
+                        <input type="text" name="destination" id="destination" required placeholder="DPS" class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md p-2 mt-1 border">
+                    </div>
+                    <div>
+                        <label for="date" class="block text-sm font-medium text-gray-700">Date</label>
+                        <input type="date" name="date" id="date" required class="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md p-2 mt-1 border">
+                    </div>
+                    <div class="flex items-end">
+                        <button type="submit" class="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none">
+                            Search
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div class="bg-white shadow sm:rounded-lg">
+            <div class="px-4 py-5 border-b border-gray-200 sm:px-6 flex justify-between">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Available Flights</h3>
+            </div>
+            <ul class="divide-y divide-gray-200" id="flightsList">
+                <li class="px-4 py-4 sm:px-6 text-center text-gray-500">Search to see flights</li>
+            </ul>
+        </div>
+    </main>
+
+    <script type="module">
+        import { flightService } from '../../services/flightService.js';
+
+        document.getElementById('searchForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const origin = document.getElementById('origin').value;
+            const destination = document.getElementById('destination').value;
+            const date = document.getElementById('date').value;
+            const flightList = document.getElementById('flightsList');
+
+            flightList.innerHTML = '<li class="px-4 py-4 sm:px-6 text-center text-gray-500">Searching...</li>';
+
+            try {
+                const response = await flightService.searchFlights({ origin, destination, date });
+                const flights = response.data || [];
+                
+                if (flights.length === 0) {
+                    flightList.innerHTML = '<li class="px-4 py-4 sm:px-6 text-center text-gray-500">No flights found.</li>';
+                    return;
+                }
+
+                flightList.innerHTML = '';
+                flights.forEach(f => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        <div class="px-4 py-4 sm:px-6 hover:bg-gray-50 flex items-center justify-between">
+                            <div class="flex items-center space-x-4">
+                                ${f.airline.logo_url ? `<img src="${f.airline.logo_url}" alt="${f.airline.name}" class="h-10 w-10 rounded-full">` : '<div class="h-10 w-10 rounded-full bg-gray-200"></div>'}
+                                <div>
+                                    <p class="text-sm font-medium text-blue-600 truncate">${f.airline.name} (${f.flight_number})</p>
+                                    <p class="text-xs text-gray-500">${new Date(f.departure_time).toLocaleString()} - ${new Date(f.arrival_time).toLocaleString()}</p>
+                                </div>
+                            </div>
+                            <div class="mt-2 sm:flex sm:justify-between items-center sm:mt-0">
+                                <div class="flex items-center text-sm text-gray-500 mr-6">
+                                    <span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">${f.available_seats} seats available</span>
+                                </div>
+                                <a href="/pages/user/seats.html?flightId=${f.id}" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none">
+                                    Select Seats
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                    flightList.appendChild(li);
+                });
+
+            } catch (error) {
+                flightList.innerHTML = `<li class="px-4 py-4 sm:px-6 text-center text-red-500">${error.message || 'Error fetching flights'}</li>`;
+            }
+        });
+        
+        // Auto load full list on init (optional, depending on UX. Server has /flights)
+        async function loadAll() {
+            try {
+                const response = await flightService.getAllFlights();
+                const flights = response.data || [];
+                const flightList = document.getElementById('flightsList');
+                if (flights.length === 0) return;
+                
+                flightList.innerHTML = '';
+                flights.forEach(f => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        <div class="px-4 py-4 sm:px-6 hover:bg-gray-50 flex items-center justify-between transition duration-150">
+                            <div class="flex items-center space-x-4">
+                                <div class="h-12 w-12 rounded-full border border-gray-200 flex items-center justify-center bg-gray-50">
+                                    ${f.airline.logo_url ? `<img src="${f.airline.logo_url}" alt="${f.airline.name}" class="h-8 w-8 object-contain">` : `<span class="text-xs font-bold text-gray-400">${f.airline.code}</span>`}
+                                </div>
+                                <div>
+                                    <p class="text-sm font-bold text-gray-900 truncate">${f.airline.name} <span class="text-xs font-normal text-gray-500 ml-1">${f.flight_number}</span></p>
+                                    <div class="flex items-center mt-1 text-sm text-gray-500">
+                                        <div class="flex flex-col">
+                                            <span class="font-semibold text-gray-700">${new Date(f.departure_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                            <span class="text-xs">${f.origin.city} (${f.origin.code})</span>
+                                        </div>
+                                        <span class="mx-3 text-gray-300">→</span>
+                                        <div class="flex flex-col">
+                                            <span class="font-semibold text-gray-700">${new Date(f.arrival_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                            <span class="text-xs">${f.destination.city} (${f.destination.code})</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-2 sm:flex flex-col items-end sm:mt-0">
+                                <div class="text-sm text-gray-500 mb-2">
+                                    <span class="${f.available_seats > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'} px-2 py-1 rounded text-xs font-medium shadow-sm">
+                                        ${f.available_seats > 0 ? f.available_seats + ' seats right now' : 'Sold Out'}
+                                    </span>
+                                </div>
+                                ${f.available_seats > 0 ? 
+                                `<a href="/pages/user/seats.html?flightId=${f.id}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none transition-colors">
+                                    Book Now
+                                </a>` : 
+                                `<button disabled class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-gray-400 bg-gray-100 cursor-not-allowed">
+                                    Sold Out
+                                </button>`}
+                            </div>
+                        </div>
+                    `;
+                    flightList.appendChild(li);
+                });
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        loadAll();
+    </script>
+</body>
+</html>

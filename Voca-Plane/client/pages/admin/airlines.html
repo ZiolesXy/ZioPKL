@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Airlines</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+    </style>
+</head>
+<body class="min-h-screen flex">
+    <!-- Sidebar -->
+    <div class="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 bg-gray-900">
+        <div class="flex-1 flex flex-col min-h-0 pt-5 pb-4 overflow-y-auto">
+            <div class="flex items-center flex-shrink-0 px-4"><span class="text-xl font-bold tracking-wider text-blue-400">Admin Panel</span></div>
+            <nav class="mt-5 flex-1 px-2 space-y-1">
+                <a href="/pages/admin/dashboard.html" class="text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md">Dashboard</a>
+                <a href="/pages/admin/flights.html" class="text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md">Flights</a>
+                <a href="/pages/admin/airlines.html" class="bg-gray-800 text-white group flex items-center px-2 py-2 text-sm font-medium border-l-4 border-blue-500 rounded-md">Airlines</a>
+                <a href="/pages/admin/airports.html" class="text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md">Airports</a>
+                <a href="/pages/admin/promos.html" class="text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md">Promos</a>
+                <a href="/pages/admin/users.html" class="text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md">Users</a>
+                <a href="/pages/user/profile.html" class="text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md mt-8">← Back</a>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Main -->
+    <div class="md:pl-64 flex flex-col flex-1">
+        <main class="flex-1 py-6 max-w-7xl mx-auto px-4 sm:px-6 md:px-8 w-full">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-2xl font-semibold text-gray-900">Manage Airlines</h1>
+                <!-- Create Toggle -->
+                <button onclick="document.getElementById('createForm').classList.toggle('hidden')" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition">Add Airline</button>
+            </div>
+
+            <!-- Create Form (Hidden by default) -->
+            <div id="createForm" class="hidden bg-white shadow sm:rounded-lg p-6 mb-6">
+                <form id="airlineForm" class="space-y-4 max-w-lg">
+                    <div><label class="block text-sm font-medium text-gray-700">Name</label><input type="text" id="name" required class="mt-1 block w-full rounded-md border-gray-300 border shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"></div>
+                    <div><label class="block text-sm font-medium text-gray-700">Code</label><input type="text" id="code" required class="mt-1 block w-full rounded-md border-gray-300 border shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"></div>
+                    <!-- Assuming multipart for Cloudinary based on KI, but API map uses JSON JSON URL. We will use JSON strictly to specification. -->
+                    <div><label class="block text-sm font-medium text-gray-700">Logo (Base64 or URL structure per API)</label><input type="text" id="logo" required class="mt-1 block w-full rounded-md border-gray-300 border shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"></div>
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 shadow-sm mt-4">Save</button>
+                </form>
+            </div>
+
+            <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                <ul id="list" class="divide-y divide-gray-200"></ul>
+            </div>
+        </main>
+    </div>
+
+    <script type="module">
+        import { adminService } from '../../services/adminService.js';
+
+        async function loadAirlines() {
+            try {
+                const res = await adminService.getAirlines();
+                const list = document.getElementById('list');
+                list.innerHTML = '';
+                (res.data || []).forEach(item => {
+                    list.innerHTML += `
+                        <li class="px-6 py-4 flex justify-between items-center bg-white hover:bg-gray-50">
+                            <div>
+                                <p class="text-sm font-medium text-gray-900">${item.name} <span class="text-xs ml-2 text-gray-500">${item.code}</span></p>
+                            </div>
+                            <button onclick="delAirline(${item.id})" class="text-red-600 hover:text-red-900 text-sm font-medium">Delete</button>
+                        </li>
+                    `;
+                });
+            } catch (err) { console.error(err); }
+        }
+
+        document.getElementById('airlineForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('name').value;
+            const code = document.getElementById('code').value;
+            const logo_url = document.getElementById('logo').value;
+            try {
+                // If the backend accepts raw URL, we send JSON. If it wanted multipart, we'd need FormData. 
+                // The dto airline.go says `json:"logo_url" form:"logo_url"`, meaning it supports both. We'll send JSON for simplicity.
+                await adminService.createAirline({ name, code, logo_url });
+                loadAirlines();
+                document.getElementById('airlineForm').reset();
+                document.getElementById('createForm').classList.toggle('hidden');
+            } catch (err) { alert(err.message); }
+        });
+
+        window.delAirline = async function(id) {
+            if(confirm('Delete?')) {
+                try {
+                    await adminService.deleteAirline(id);
+                    loadAirlines();
+                } catch (err) { alert(err.message); }
+            }
+        }
+
+        loadAirlines();
+    </script>
+</body>
+</html>

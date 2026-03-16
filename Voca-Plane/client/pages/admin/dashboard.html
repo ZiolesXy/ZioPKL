@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+    </style>
+</head>
+<body class="min-h-screen flex">
+    <!-- Sidebar -->
+    <div class="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 text-white bg-gray-900 border-r border-gray-800">
+        <div class="flex-1 flex flex-col min-h-0 pt-5 pb-4 overflow-y-auto">
+            <div class="flex items-center flex-shrink-0 px-4">
+                <span class="text-xl font-bold tracking-wider text-blue-400">Admin Panel</span>
+            </div>
+            <nav class="mt-5 flex-1 px-2 space-y-1">
+                <a href="/pages/admin/dashboard.html" class="bg-gray-800 text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md shadow-sm border-l-4 border-blue-500">
+                    Dashboard
+                </a>
+                <a href="/pages/admin/flights.html" class="text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md transition duration-150">
+                    Flights
+                </a>
+                <a href="/pages/admin/airlines.html" class="text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md transition duration-150">
+                    Airlines
+                </a>
+                <a href="/pages/admin/airports.html" class="text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md transition duration-150">
+                    Airports
+                </a>
+                <a href="/pages/admin/promos.html" class="text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md transition duration-150">
+                    Promos
+                </a>
+                <a href="/pages/admin/users.html" class="text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md transition duration-150">
+                    Users
+                </a>
+                <a href="/pages/user/profile.html" class="text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md transition duration-150 mt-8">
+                    ← Back to App
+                </a>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Main -->
+    <div class="md:pl-64 flex flex-col flex-1">
+        <main class="flex-1">
+            <div class="py-6">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+                    <h1 class="text-2xl font-semibold text-gray-900">Dashboard</h1>
+                </div>
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+                    <!-- Replace with your content -->
+                    <div class="py-4">
+                        <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4" id="statsContainer">
+                            <p class="text-gray-500">Loading dashboard...</p>
+                        </div>
+                    </div>
+                    <!-- /End replace -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script type="module">
+        import { adminService } from '../../services/adminService.js';
+
+        async function init() {
+            try {
+                const response = await adminService.getDashboard();
+                const stats = response.data;
+                const container = document.getElementById('statsContainer');
+                container.innerHTML = '';
+                
+                // Ex: { total_users: 10, total_flights: 5, total_revenue: 1000000 }
+                for (const [key, value] of Object.entries(stats)) {
+                    let formattedValue = value;
+                    if (key.toLowerCase().includes('revenue') || key.toLowerCase().includes('price')) {
+                        formattedValue = 'Rp ' + Number(value).toLocaleString();
+                    }
+
+                    const card = document.createElement('div');
+                    card.className = "bg-white overflow-hidden shadow rounded-lg px-4 py-5 sm:p-6 border border-gray-100 hover:shadow-md transition-shadow";
+                    card.innerHTML = `
+                        <dt class="text-sm font-medium text-gray-500 truncate capitalize">
+                            ${key.replace(/_/g, ' ')}
+                        </dt>
+                        <dd class="mt-1 text-3xl font-bold text-gray-900">
+                            ${formattedValue}
+                        </dd>
+                    `;
+                    container.appendChild(card);
+                }
+            } catch (error) {
+                document.getElementById('statsContainer').innerHTML = `<p class="text-red-500">${error.message || 'Error loading dashboard (Check your admin role)'}</p>`;
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>

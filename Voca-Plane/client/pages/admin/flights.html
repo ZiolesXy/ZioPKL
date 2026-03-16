@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Flights</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+    </style>
+</head>
+<body class="min-h-screen flex">
+    <!-- Sidebar -->
+    <div class="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 bg-gray-900">
+        <div class="flex-1 flex flex-col min-h-0 pt-5 pb-4 overflow-y-auto">
+            <div class="flex items-center flex-shrink-0 px-4"><span class="text-xl font-bold tracking-wider text-blue-400">Admin Panel</span></div>
+            <nav class="mt-5 flex-1 px-2 space-y-1">
+                <a href="/pages/admin/dashboard.html" class="text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md">Dashboard</a>
+                <a href="/pages/admin/flights.html" class="bg-gray-800 text-white group flex items-center px-2 py-2 text-sm font-medium border-l-4 border-blue-500 rounded-md">Flights</a>
+                <a href="/pages/admin/airlines.html" class="text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md">Airlines</a>
+                <a href="/pages/admin/airports.html" class="text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md">Airports</a>
+                <a href="/pages/admin/promos.html" class="text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md">Promos</a>
+                <a href="/pages/admin/users.html" class="text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md">Users</a>
+                <a href="/pages/user/profile.html" class="text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md mt-8">← Back</a>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Main -->
+    <div class="md:pl-64 flex flex-col flex-1">
+        <main class="flex-1 py-6 max-w-7xl mx-auto px-4 sm:px-6 md:px-8 w-full">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-2xl font-semibold text-gray-900">Manage Flights</h1>
+                <button onclick="document.getElementById('createForm').classList.toggle('hidden')" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition">Add Flight</button>
+            </div>
+
+            <!-- Create Form (Hidden by default) -->
+            <div id="createForm" class="hidden bg-white shadow sm:rounded-lg p-6 mb-6">
+                <form id="addForm" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div><label class="block font-medium">Flight No</label><input type="text" id="flight_num" required class="border w-full p-2 rounded"></div>
+                    <div><label class="block font-medium">Airline ID</label><input type="number" id="airline_id" required class="border w-full p-2 rounded"></div>
+                    <div><label class="block font-medium">Origin Airport ID</label><input type="number" id="origin_id" required class="border w-full p-2 rounded"></div>
+                    <div><label class="block font-medium">Destination Airport ID</label><input type="number" id="dest_id" required class="border w-full p-2 rounded"></div>
+                    
+                    <div><label class="block font-medium">Departure Time</label><input type="datetime-local" id="dep_time" required class="border w-full p-2 rounded"></div>
+                    <div><label class="block font-medium">Arrival Time</label><input type="datetime-local" id="arr_time" required class="border w-full p-2 rounded"></div>
+                    
+                    <div><label class="block font-medium">Total Seats</label><input type="number" id="total_seats" required class="border w-full p-2 rounded"></div>
+                    <div><label class="block font-medium">Grid: Rows / Cols</label>
+                        <div class="flex space-x-2">
+                            <input type="number" id="rows" placeholder="Rows" required class="border w-full p-2 rounded">
+                            <input type="number" id="cols" placeholder="Cols" required class="border w-full p-2 rounded">
+                        </div>
+                    </div>
+
+                    <div class="md:col-span-2 border-t mt-4 pt-4">
+                        <label class="block font-medium">Classes and Prices</label>
+                        <p class="text-xs text-gray-500 mb-2">Example classes: Economy, Business, First</p>
+                        <div id="classesContainer" class="space-y-2">
+                            <div class="flex space-x-2">
+                                <input type="text" placeholder="Class Name" value="Economy" class="cls-name border w-1/2 p-2 rounded" required>
+                                <input type="number" placeholder="Price" value="1000000" class="cls-price border w-1/2 p-2 rounded" required>
+                            </div>
+                            <div class="flex space-x-2">
+                                <input type="text" placeholder="Class Name" value="Business" class="cls-name border w-1/2 p-2 rounded">
+                                <input type="number" placeholder="Price" value="2500000" class="cls-price border w-1/2 p-2 rounded">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="md:col-span-2 text-right">
+                        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Create Flight</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+                <ul id="list" class="divide-y divide-gray-200"></ul>
+            </div>
+        </main>
+    </div>
+
+    <script type="module">
+        import { adminService } from '../../services/adminService.js';
+
+        async function loadData() {
+            try {
+                const res = await adminService.getFlights();
+                const list = document.getElementById('list');
+                list.innerHTML = '';
+                (res.data || []).forEach(item => {
+                    list.innerHTML += `
+                        <li class="px-6 py-4 flex justify-between items-center bg-white hover:bg-gray-50">
+                            <div>
+                                <p class="text-sm font-semibold text-gray-900">${item.flight_number} - ${item.airline.name}</p>
+                                <p class="text-xs text-gray-600">${item.origin.code} &rarr; ${item.destination.code}</p>
+                                <p class="text-xs text-gray-500 mt-1">${new Date(item.departure_time).toLocaleString()} - ${new Date(item.arrival_time).toLocaleString()}</p>
+                            </div>
+                            <button onclick="delItem(${item.id})" class="text-red-600 hover:text-red-900 text-sm font-medium bg-red-50 px-3 py-1 rounded">Delete</button>
+                        </li>
+                    `;
+                });
+            } catch (err) { console.error(err); }
+        }
+
+        document.getElementById('addForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Format time inputs to RFC3339 for backend (Go takes time.Time which parses RFC3339 from JSON strings)
+            const depIso = new Date(document.getElementById('dep_time').value).toISOString();
+            const arrIso = new Date(document.getElementById('arr_time').value).toISOString();
+
+            const names = document.querySelectorAll('.cls-name');
+            const prices = document.querySelectorAll('.cls-price');
+            
+            let class_prices = [];
+            let count = 0;
+            for(let i=0; i<names.length; i++) {
+                if (names[i].value && prices[i].value) {
+                    class_prices.push({
+                        class_type: names[i].value,
+                        price: parseFloat(prices[i].value)
+                    });
+                    count++;
+                }
+            }
+
+            const payload = {
+                airline_id: parseInt(document.getElementById('airline_id').value),
+                origin_id: parseInt(document.getElementById('origin_id').value),
+                destination_id: parseInt(document.getElementById('dest_id').value),
+                departure_time: depIso,
+                arrival_time: arrIso,
+                flight_number: document.getElementById('flight_num').value,
+                total_seats: parseInt(document.getElementById('total_seats').value),
+                total_rows: parseInt(document.getElementById('rows').value),
+                total_columns: parseInt(document.getElementById('cols').value),
+                class_count: count,
+                class_prices: class_prices
+            };
+
+            try {
+                await adminService.createFlight(payload);
+                loadData();
+                document.getElementById('addForm').reset();
+                document.getElementById('createForm').classList.add('hidden');
+            } catch (err) { alert(err.message); }
+        });
+
+        window.delItem = async function(id) {
+            if(confirm('Delete flight? This will fail if there are transactions attached.')) {
+                try {
+                    await adminService.deleteFlight(id);
+                    loadData();
+                } catch (err) { alert(err.message); }
+            }
+        }
+
+        loadData();
+    </script>
+</body>
+</html>
