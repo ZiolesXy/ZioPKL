@@ -114,12 +114,18 @@ func (r *flightRepository) GetAll(ctx context.Context, page, limit int, sortBy, 
 		"arrival_time":    true,
 		"total_seats":     true,
 		"available_seats": true,
-		"min_price":       true,
 	}
 
-	// map price → min_price
+	// special sorting for price
 	if sortBy == "price" {
-		sortBy = "min_price"
+		query = query.Order(`
+		(
+			SELECT MIN(price)
+			FROM flight_classes
+			WHERE flight_classes.flight_id = flights.id
+		) ` + order)
+	} else {
+		query = helper.ApplySorting(query, sortBy, order, allowedColumns, "flights.id ASC")
 	}
 
 	query = helper.ApplySorting(query, sortBy, order, allowedColumns, "flights.id ASC")
