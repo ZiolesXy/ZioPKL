@@ -56,7 +56,7 @@ func (r *transactionRepository) GetByUserID(ctx context.Context, userID uint, pa
 		Preload("Items").
 		Preload("Items.FlightClass")
 
-	query.Count(&total)
+	query.Session(&gorm.Session{}).Count(&total)
 	offset := (page - 1) * limit
 	err := query.Order("created_at DESC").Offset(offset).Limit(limit).Find(&transactions).Error
 	return transactions, total, err

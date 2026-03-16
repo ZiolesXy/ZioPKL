@@ -7,8 +7,8 @@ export const adminService = {
     },
 
     // Users
-    async getUsers() {
-        return fetchApi('/admin/users');
+    async getUsers(page = 1, limit = 10) {
+        return fetchApi(`/admin/users?page=${page}&limit=${limit}`);
     },
     async updateUserRole(id, roleData) {
         return fetchApi(`/admin/users/${id}/role`, { method: 'PATCH', body: roleData });
@@ -27,13 +27,13 @@ export const adminService = {
     },
 
     // Transactions
-    async getTransactions() {
-        return fetchApi('/admin/transactions');
+    async getTransactions(page = 1, limit = 10) {
+        return fetchApi(`/admin/transactions?page=${page}&limit=${limit}`);
     },
 
     // Flights
-    async getFlights() {
-        return fetchApi('/admin/flights');
+    async getFlights(page = 1, limit = 10) {
+        return fetchApi(`/admin/flights?page=${page}&limit=${limit}`);
     },
     async createFlight(data) {
         return fetchApi('/admin/flights', { method: 'POST', body: data });
@@ -49,8 +49,8 @@ export const adminService = {
     async getAirlinesPublic() {
         return fetchApi('/airlines');
     },
-    async getAirlines() {
-        return fetchApi('/admin/airlines');
+    async getAirlines(page = 1, limit = 10) {
+        return fetchApi(`/admin/airlines?page=${page}&limit=${limit}`);
     },
     async createAirline(data) {
         return fetchApi('/admin/airlines', { method: 'POST', body: data });
@@ -66,8 +66,8 @@ export const adminService = {
     async getAirportsPublic() {
         return fetchApi('/airports');
     },
-    async getAirports() {
-        return fetchApi('/admin/airports');
+    async getAirports(page = 1, limit = 10) {
+        return fetchApi(`/admin/airports?page=${page}&limit=${limit}`);
     },
     async createAirport(data) {
         return fetchApi('/admin/airports', { method: 'POST', body: data });
@@ -80,8 +80,8 @@ export const adminService = {
     },
 
     // Promos
-    async getPromos() {
-        return fetchApi('/admin/promos');
+    async getPromos(page = 1, limit = 10) {
+        return fetchApi(`/admin/promos?page=${page}&limit=${limit}`);
     },
     async createPromo(data) {
         return fetchApi('/admin/promos', { method: 'POST', body: data });

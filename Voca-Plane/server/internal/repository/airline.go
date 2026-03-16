@@ -21,7 +21,7 @@ func (r *airlineRepository) GetAll(ctx context.Context, page, limit int, sortBy,
 	var total int64
 
 	query := r.db.WithContext(ctx).Model(&models.Airline{})
-	query.Count(&total)
+	query.Session(&gorm.Session{}).Count(&total)
 
 	// Airlines Whitelist
 	allowedColumns := map[string]bool{

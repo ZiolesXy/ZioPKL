@@ -43,7 +43,7 @@ func (r *adminRepository) GetAllUsers(ctx context.Context, page, limit int, sort
 	var total int64
 
 	query := r.db.WithContext(ctx).Unscoped().Model(&models.User{})
-	query.Count(&total)
+	query.Session(&gorm.Session{}).Count(&total)
 
 	// Admin Users Whitelist
 	allowedColumns := map[string]bool{
@@ -79,7 +79,7 @@ func (r *adminRepository) GetAllTransactions(ctx context.Context, page, limit in
 		Preload("Items").
 		Preload("Items.FlightClass")
 
-	query.Count(&total)
+	query.Session(&gorm.Session{}).Count(&total)
 
 	// Transactions Whitelist
 	allowedColumns := map[string]bool{

@@ -33,7 +33,7 @@ func (r *promoRepository) GetAll(ctx context.Context, page, limit int, sortBy, o
 	var total int64
 
 	query := r.db.WithContext(ctx).Model(&models.PromoCode{})
-	query.Count(&total)
+	query.Session(&gorm.Session{}).Count(&total)
 
 	// Promos Whitelist
 	allowedColumns := map[string]bool{

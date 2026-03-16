@@ -34,7 +34,7 @@ type TransactionResponse struct {
 	Discount      float64                   `json:"discount"`
 	ExpiresAt     time.Time                 `json:"expires_at"`
 	CreatedAt     time.Time                 `json:"created_at"`
-	Items         []TransactionItemResponse `json:"transactions_passangers,omitempty"`
+	Items         []TransactionItemResponse `json:"transaction_items,omitempty"`
 }
 
 func ToTransactionItemResponse(p models.TransactionItem) TransactionItemResponse {

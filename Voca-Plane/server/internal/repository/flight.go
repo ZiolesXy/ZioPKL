@@ -46,7 +46,7 @@ func (r *flightRepository) Search(ctx context.Context, origin, destination, date
 			Where("flight_classes.class_type = ?", classType)
 	}
 
-	query.Count(&total)
+	query.Session(&gorm.Session{}).Count(&total)
 	offset := (page - 1) * limit
 	err = query.Offset(offset).Limit(limit).Find(&flights).Error
 	return flights, total, err
@@ -97,7 +97,7 @@ func (r *flightRepository) GetAll(ctx context.Context, page, limit int, sortBy, 
 		Preload("Destination").
 		Preload("FlightClasses")
 	
-	query.Count(&total)
+	query.Session(&gorm.Session{}).Count(&total)
 
 	// Flights Whitelist
 	allowedColumns := map[string]bool{

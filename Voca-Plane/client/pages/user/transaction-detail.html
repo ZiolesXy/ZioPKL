@@ -103,17 +103,17 @@
         }
 
         function renderRecord(tx) {
-            // 1. Update Header & Status (Sangat krusial untuk mencegah toLowerCase error)
+            // 1. Update Header & Status
             document.getElementById('txCode').textContent = `Ref Booking: ${tx.code || 'N/A'}`;
             
             const statusEl = document.getElementById('txStatus');
-            const statusRaw = tx.status || 'pending'; // Nilai default jika status undefined
+            const statusRaw = tx.payment_status || 'pending';
             const status = statusRaw.toLowerCase();
             
             statusEl.textContent = status.toUpperCase();
             statusEl.className = 'px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full';
             
-            if (status === 'success' || status === 'paid') {
+            if (status === 'success' || status === 'paid' || status === 'settlement' || status === 'capture') {
                 statusEl.classList.add('bg-green-100', 'text-green-800');
             } else if (status === 'pending' || status === 'unpaid') {
                 statusEl.classList.add('bg-yellow-100', 'text-yellow-800');
@@ -125,9 +125,9 @@
             const f = tx.flight || {};
             document.getElementById('flightDetails').innerHTML = `
                 <div class="flex justify-between items-center mb-2">
-                    <span class="font-bold text-lg">${f.origin_code || '---'} &rarr; ${f.destination_code || '---'}</span>
+                    <span class="font-bold text-lg">${f.origin?.code || '---'} &rarr; ${f.destination?.code || '---'}</span>
                     <span class="font-medium bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
-                        ${f.airline_name || 'Maskapai Tidak Diketahui'}
+                        ${f.airline?.name || 'Maskapai Tidak Diketahui'}
                     </span>
                 </div>
                 <div class="grid grid-cols-2 gap-4 mt-2">
@@ -165,7 +165,7 @@
             });
 
             // 4. Render Harga
-            const discount = tx.promo?.discount || 0;
+            const discount = tx.discount || 0;
             const totalPrice = tx.total_price || 0;
             const subtotal = totalPrice + discount;
 

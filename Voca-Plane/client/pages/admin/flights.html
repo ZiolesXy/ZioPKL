@@ -82,30 +82,10 @@
             </div>
 
             <!-- Pagination Control -->
-            <div class="mt-4 flex items-center justify-between bg-white px-4 py-3 sm:px-6 shadow sm:rounded-lg">
-                <div class="flex flex-1 justify-between sm:hidden">
-                    <button id="prevBtnMobile" class="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Previous</button>
-                    <button id="nextBtnMobile" class="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Next</button>
-                </div>
-                <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-                    <div>
-                        <p class="text-sm text-gray-700">
-                            Showing <span class="font-medium" id="pageStart">0</span> to <span class="font-medium" id="pageEnd">0</span> of <span class="font-medium" id="totalItems">0</span> results
-                        </p>
-                    </div>
-                    <div>
-                        <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-                            <button id="prevBtn" class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:bg-gray-100 disabled:cursor-not-allowed">
-                                <span class="sr-only">Previous</span>
-                                &larr; Prev
-                            </button>
-                            <button id="nextBtn" class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:bg-gray-100 disabled:cursor-not-allowed">
-                                Next &rarr;
-                                <span class="sr-only">Next</span>
-                            </button>
-                        </nav>
-                    </div>
-                </div>
+            <div class="mt-4 flex items-center justify-center bg-white px-4 py-3 sm:px-6 shadow sm:rounded-lg">
+                <nav id="paginationNav" class="isolate inline-flex -space-x-px rounded-md shadow-sm items-center" aria-label="Pagination">
+                    <!-- Buttons will be injected here -->
+                </nav>
             </div>
         </main>
     </div>
@@ -115,69 +95,102 @@
 
         let allData = [];
         let currentPage = 1;
+        let totalItems = 0;
         const itemsPerPage = 8;
 
-        async function loadData() {
+        async function loadData(page = 1) {
             try {
-                const res = await adminService.getFlights();
+                const res = await adminService.getFlights(page, itemsPerPage);
                 allData = res.data || [];
-                currentPage = 1;
+                currentPage = page;
+                totalItems = res.meta.total || allData.length;
                 renderPage();
-            } catch (err) { console.error(err); }
+                renderPagination(Math.ceil(totalItems / itemsPerPage));
+            } catch (err) { 
+                console.error(err);
+                document.getElementById('list').innerHTML = `<li class="px-6 py-4 text-center text-red-500">${err.message || 'Error loading flights'}</li>`;
+            }
         }
 
         function renderPage() {
             const list = document.getElementById('list');
             list.innerHTML = '';
             
-            const totalItems = allData.length;
-            const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
-            
-            if (currentPage > totalPages) currentPage = totalPages;
-            if (currentPage < 1) currentPage = 1;
-
-            const startIdx = (currentPage - 1) * itemsPerPage;
-            const endIdx = Math.min(startIdx + itemsPerPage, totalItems);
-            
-            const currentItems = allData.slice(startIdx, endIdx);
-
-            if (currentItems.length === 0) {
+            if (allData.length === 0) {
                 list.innerHTML = '<li class="px-6 py-4 text-center text-gray-500">No flights found.</li>';
             } else {
-                currentItems.forEach(item => {
-                    list.innerHTML += `
-                        <li class="px-6 py-4 flex justify-between items-center bg-white hover:bg-gray-50">
-                            <div>
-                                <p class="text-sm font-semibold text-gray-900">${item.flight_number} - ${item.airline.name}</p>
-                                <p class="text-xs text-gray-600">${item.origin.code} &rarr; ${item.destination.code}</p>
-                                <p class="text-xs text-gray-500 mt-1">${new Date(item.departure_time).toLocaleString()} - ${new Date(item.arrival_time).toLocaleString()}</p>
-                            </div>
-                            <div class="space-x-2 flex">
-                                <button onclick='openForm(${JSON.stringify(item).replace(/'/g, "&#39;")})' class="text-blue-600 hover:text-blue-900 text-sm font-medium bg-blue-50 px-3 py-1 rounded">Edit</button>
-                                <button onclick="delItem(${item.id})" class="text-red-600 hover:text-red-900 text-sm font-medium bg-red-50 px-3 py-1 rounded">Delete</button>
-                            </div>
-                        </li>
+                allData.forEach(item => {
+                    const li = document.createElement('li');
+                    li.className = 'px-6 py-4 flex justify-between items-center bg-white hover:bg-gray-50';
+                    li.innerHTML = `
+                        <div>
+                            <p class="text-sm font-semibold text-gray-900">${item.flight_number} - ${item.airline?.name || 'Unknown'}</p>
+                            <p class="text-xs text-gray-600">${item.origin?.code || '---'} &rarr; ${item.destination?.code || '---'}</p>
+                            <p class="text-xs text-gray-500 mt-1">${item.departure_time ? new Date(item.departure_time).toLocaleString() : '-'} - ${item.arrival_time ? new Date(item.arrival_time).toLocaleString() : '-'}</p>
+                        </div>
+                        <div class="space-x-2 flex">
+                            <button id="edit-${item.id}" class="text-blue-600 hover:text-blue-900 text-sm font-medium bg-blue-50 px-3 py-1 rounded">Edit</button>
+                            <button id="del-${item.id}" class="text-red-600 hover:text-red-900 text-sm font-medium bg-red-50 px-3 py-1 rounded">Delete</button>
+                        </div>
                     `;
+                    list.appendChild(li);
+                    document.getElementById(`edit-${item.id}`).onclick = () => window.openForm(item);
+                    document.getElementById(`del-${item.id}`).onclick = () => window.delItem(item.id);
                 });
             }
-
-            document.getElementById('totalItems').textContent = totalItems;
-            document.getElementById('pageStart').textContent = totalItems === 0 ? 0 : startIdx + 1;
-            document.getElementById('pageEnd').textContent = endIdx;
-
-            const disablePrev = currentPage === 1;
-            const disableNext = currentPage === totalPages;
-
-            document.getElementById('prevBtn').disabled = disablePrev;
-            document.getElementById('nextBtn').disabled = disableNext;
-            document.getElementById('prevBtnMobile').disabled = disablePrev;
-            document.getElementById('nextBtnMobile').disabled = disableNext;
         }
 
-        document.getElementById('prevBtn').addEventListener('click', () => { if(currentPage > 1) { currentPage--; renderPage(); } });
-        document.getElementById('nextBtn').addEventListener('click', () => { if(currentPage < Math.ceil(allData.length / itemsPerPage)) { currentPage++; renderPage(); } });
-        document.getElementById('prevBtnMobile').addEventListener('click', () => { if(currentPage > 1) { currentPage--; renderPage(); } });
-        document.getElementById('nextBtnMobile').addEventListener('click', () => { if(currentPage < Math.ceil(allData.length / itemsPerPage)) { currentPage++; renderPage(); } });
+        function renderPagination(totalPages) {
+            const nav = document.getElementById('paginationNav');
+            nav.innerHTML = '';
+
+            // Previous
+            const prevBtn = document.createElement('button');
+            prevBtn.className = `relative inline-flex items-center px-4 py-2 text-sm font-medium border border-gray-300 rounded-l-md bg-white hover:bg-gray-50 text-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed`;
+            prevBtn.disabled = currentPage === 1;
+            prevBtn.innerHTML = '&lsaquo; Previous';
+            prevBtn.onclick = () => { if(currentPage > 1) loadData(currentPage - 1); };
+            nav.appendChild(prevBtn);
+
+            const windowSize = 1;
+            const pages = [];
+            pages.push(1);
+            let start = Math.max(2, currentPage - windowSize);
+            let end = Math.min(totalPages - 1, currentPage + windowSize);
+
+            if (start > 2) pages.push('...');
+            for (let i = start; i <= end; i++) pages.push(i);
+            if (end < totalPages - 1) pages.push('...');
+            if (totalPages > 1) pages.push(totalPages);
+
+            pages.forEach(p => {
+                if (p === '...') {
+                    const span = document.createElement('span');
+                    span.className = 'relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300';
+                    span.textContent = '...';
+                    nav.appendChild(span);
+                } else {
+                    const btn = document.createElement('button');
+                    if (p === currentPage) {
+                        btn.className = 'relative z-10 inline-flex items-center bg-blue-600 px-4 py-2 text-sm font-semibold text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 rounded-md mx-1';
+                        btn.textContent = p;
+                    } else {
+                        btn.className = 'relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 mx-1 rounded-md';
+                        btn.textContent = p;
+                        btn.onclick = () => loadData(p);
+                    }
+                    nav.appendChild(btn);
+                }
+            });
+
+            // Next
+            const nextBtn = document.createElement('button');
+            nextBtn.className = `relative inline-flex items-center px-4 py-2 text-sm font-medium border border-gray-300 rounded-r-md bg-white hover:bg-gray-50 text-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed`;
+            nextBtn.disabled = currentPage === totalPages;
+            nextBtn.innerHTML = 'Next &rsaquo;';
+            nextBtn.onclick = () => { if(currentPage < totalPages) loadData(currentPage + 1); };
+            nav.appendChild(nextBtn);
+        }
 
         let editId = null;
 
