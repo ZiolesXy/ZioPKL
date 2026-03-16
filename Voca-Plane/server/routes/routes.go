@@ -5,6 +5,7 @@ import (
 	"voca-plane/internal/handler"
 	"voca-plane/internal/repository"
 	"voca-plane/middleware"
+	globalResp "voca-plane/pkg/response"
 
 	"github.com/gin-gonic/gin"
 )
@@ -24,6 +25,9 @@ func SetUpRoutes(r *gin.Engine,
 
 	v1 := r.Group("/api/v1")
 	{
+		v1.GET("", func(c *gin.Context) {
+			globalResp.Success(c, http.StatusOK, "welcome to the voca plane", nil)
+		})
 		v1.GET("/health", func(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{"status": "ok"})
 		})
