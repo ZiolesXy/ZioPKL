@@ -32,11 +32,12 @@
         <main class="flex-1 py-6 max-w-7xl mx-auto px-4 sm:px-6 md:px-8 w-full">
             <div class="flex justify-between items-center mb-6">
                 <h1 class="text-2xl font-semibold text-gray-900">Manage Flights</h1>
-                <button onclick="document.getElementById('createForm').classList.toggle('hidden')" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition">Add Flight</button>
+                <button onclick="openForm()" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition">Add Flight</button>
             </div>
 
-            <!-- Create Form (Hidden by default) -->
+            <!-- Add/Edit Form (Hidden by default) -->
             <div id="createForm" class="hidden bg-white shadow sm:rounded-lg p-6 mb-6">
+                <h3 id="formTitle" class="text-lg font-medium text-gray-900 mb-4">Add Flight</h3>
                 <form id="addForm" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                     <div><label class="block font-medium">Flight No</label><input type="text" id="flight_num" required class="border w-full p-2 rounded"></div>
                     <div><label class="block font-medium">Airline ID</label><input type="number" id="airline_id" required class="border w-full p-2 rounded"></div>
@@ -69,8 +70,9 @@
                         </div>
                     </div>
 
-                    <div class="md:col-span-2 text-right">
-                        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Create Flight</button>
+                    <div class="md:col-span-2 text-right space-x-2">
+                        <button type="button" onclick="closeForm()" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300">Cancel</button>
+                        <button type="submit" id="submitBtn" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Create Flight</button>
                     </div>
                 </form>
             </div>
@@ -78,18 +80,71 @@
             <div class="bg-white shadow overflow-hidden sm:rounded-lg">
                 <ul id="list" class="divide-y divide-gray-200"></ul>
             </div>
+
+            <!-- Pagination Control -->
+            <div class="mt-4 flex items-center justify-between bg-white px-4 py-3 sm:px-6 shadow sm:rounded-lg">
+                <div class="flex flex-1 justify-between sm:hidden">
+                    <button id="prevBtnMobile" class="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Previous</button>
+                    <button id="nextBtnMobile" class="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Next</button>
+                </div>
+                <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                    <div>
+                        <p class="text-sm text-gray-700">
+                            Showing <span class="font-medium" id="pageStart">0</span> to <span class="font-medium" id="pageEnd">0</span> of <span class="font-medium" id="totalItems">0</span> results
+                        </p>
+                    </div>
+                    <div>
+                        <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                            <button id="prevBtn" class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:bg-gray-100 disabled:cursor-not-allowed">
+                                <span class="sr-only">Previous</span>
+                                &larr; Prev
+                            </button>
+                            <button id="nextBtn" class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:bg-gray-100 disabled:cursor-not-allowed">
+                                Next &rarr;
+                                <span class="sr-only">Next</span>
+                            </button>
+                        </nav>
+                    </div>
+                </div>
+            </div>
         </main>
     </div>
 
     <script type="module">
         import { adminService } from '../../services/adminService.js';
 
+        let allData = [];
+        let currentPage = 1;
+        const itemsPerPage = 8;
+
         async function loadData() {
             try {
                 const res = await adminService.getFlights();
-                const list = document.getElementById('list');
-                list.innerHTML = '';
-                (res.data || []).forEach(item => {
+                allData = res.data || [];
+                currentPage = 1;
+                renderPage();
+            } catch (err) { console.error(err); }
+        }
+
+        function renderPage() {
+            const list = document.getElementById('list');
+            list.innerHTML = '';
+            
+            const totalItems = allData.length;
+            const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+            
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+
+            const startIdx = (currentPage - 1) * itemsPerPage;
+            const endIdx = Math.min(startIdx + itemsPerPage, totalItems);
+            
+            const currentItems = allData.slice(startIdx, endIdx);
+
+            if (currentItems.length === 0) {
+                list.innerHTML = '<li class="px-6 py-4 text-center text-gray-500">No flights found.</li>';
+            } else {
+                currentItems.forEach(item => {
                     list.innerHTML += `
                         <li class="px-6 py-4 flex justify-between items-center bg-white hover:bg-gray-50">
                             <div>
@@ -97,12 +152,93 @@
                                 <p class="text-xs text-gray-600">${item.origin.code} &rarr; ${item.destination.code}</p>
                                 <p class="text-xs text-gray-500 mt-1">${new Date(item.departure_time).toLocaleString()} - ${new Date(item.arrival_time).toLocaleString()}</p>
                             </div>
-                            <button onclick="delItem(${item.id})" class="text-red-600 hover:text-red-900 text-sm font-medium bg-red-50 px-3 py-1 rounded">Delete</button>
+                            <div class="space-x-2 flex">
+                                <button onclick='openForm(${JSON.stringify(item).replace(/'/g, "&#39;")})' class="text-blue-600 hover:text-blue-900 text-sm font-medium bg-blue-50 px-3 py-1 rounded">Edit</button>
+                                <button onclick="delItem(${item.id})" class="text-red-600 hover:text-red-900 text-sm font-medium bg-red-50 px-3 py-1 rounded">Delete</button>
+                            </div>
                         </li>
                     `;
                 });
-            } catch (err) { console.error(err); }
+            }
+
+            document.getElementById('totalItems').textContent = totalItems;
+            document.getElementById('pageStart').textContent = totalItems === 0 ? 0 : startIdx + 1;
+            document.getElementById('pageEnd').textContent = endIdx;
+
+            const disablePrev = currentPage === 1;
+            const disableNext = currentPage === totalPages;
+
+            document.getElementById('prevBtn').disabled = disablePrev;
+            document.getElementById('nextBtn').disabled = disableNext;
+            document.getElementById('prevBtnMobile').disabled = disablePrev;
+            document.getElementById('nextBtnMobile').disabled = disableNext;
         }
+
+        document.getElementById('prevBtn').addEventListener('click', () => { if(currentPage > 1) { currentPage--; renderPage(); } });
+        document.getElementById('nextBtn').addEventListener('click', () => { if(currentPage < Math.ceil(allData.length / itemsPerPage)) { currentPage++; renderPage(); } });
+        document.getElementById('prevBtnMobile').addEventListener('click', () => { if(currentPage > 1) { currentPage--; renderPage(); } });
+        document.getElementById('nextBtnMobile').addEventListener('click', () => { if(currentPage < Math.ceil(allData.length / itemsPerPage)) { currentPage++; renderPage(); } });
+
+        let editId = null;
+
+        window.openForm = function(item = null) {
+            const form = document.getElementById('addForm');
+            const container = document.getElementById('createForm');
+            const submitBtn = document.getElementById('submitBtn');
+            const title = document.getElementById('formTitle');
+
+            if (item) {
+                editId = item.id;
+                document.getElementById('flight_num').value = item.flight_number;
+                document.getElementById('airline_id').value = item.airline_id;
+                document.getElementById('origin_id').value = item.origin_id;
+                document.getElementById('dest_id').value = item.destination_id;
+                
+                document.getElementById('dep_time').value = new Date(item.departure_time).toISOString().slice(0, 16);
+                document.getElementById('arr_time').value = new Date(item.arrival_time).toISOString().slice(0, 16);
+                
+                document.getElementById('total_seats').value = item.total_seats;
+                document.getElementById('rows').value = item.total_rows;
+                document.getElementById('cols').value = item.total_columns;
+
+                const classesContainer = document.getElementById('classesContainer');
+                classesContainer.innerHTML = '';
+                if(item.classes) {
+                    item.classes.forEach(c => {
+                        classesContainer.innerHTML += `
+                            <div class="flex space-x-2 mt-2">
+                                <input type="text" placeholder="Class Name" value="${c.class_type}" class="cls-name border w-1/2 p-2 rounded" required>
+                                <input type="number" placeholder="Price" value="${c.price}" class="cls-price border w-1/2 p-2 rounded" required>
+                            </div>
+                        `;
+                    });
+                }
+                submitBtn.textContent = 'Update Flight';
+                title.textContent = 'Edit Flight';
+            } else {
+                editId = null;
+                form.reset();
+                document.getElementById('classesContainer').innerHTML = `
+                    <div class="flex space-x-2">
+                        <input type="text" placeholder="Class Name" value="Economy" class="cls-name border w-1/2 p-2 rounded" required>
+                        <input type="number" placeholder="Price" value="1000000" class="cls-price border w-1/2 p-2 rounded" required>
+                    </div>
+                    <div class="flex space-x-2 mt-2">
+                        <input type="text" placeholder="Class Name" value="Business" class="cls-name border w-1/2 p-2 rounded">
+                        <input type="number" placeholder="Price" value="2500000" class="cls-price border w-1/2 p-2 rounded">
+                    </div>
+                `;
+                submitBtn.textContent = 'Create Flight';
+                title.textContent = 'Add Flight';
+            }
+            container.classList.remove('hidden');
+            container.scrollIntoView({ behavior: 'smooth' });
+        };
+
+        window.closeForm = function() {
+            document.getElementById('createForm').classList.add('hidden');
+            editId = null;
+        };
 
         document.getElementById('addForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -141,10 +277,13 @@
             };
 
             try {
-                await adminService.createFlight(payload);
+                if (editId) {
+                    await adminService.updateFlight(editId, payload);
+                } else {
+                    await adminService.createFlight(payload);
+                }
                 loadData();
-                document.getElementById('addForm').reset();
-                document.getElementById('createForm').classList.add('hidden');
+                closeForm();
             } catch (err) { alert(err.message); }
         });
 

@@ -24,6 +24,12 @@
     </nav>
 
     <main class="flex-grow max-w-5xl mx-auto py-10 sm:px-6 lg:px-8 w-full grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="mb-6">
+            <a href="javascript:history.back()" class="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-500">
+                &larr; Back
+            </a>
+        </div>
+
         <div class="md:col-span-2 space-y-6">
             <div class="bg-white shadow sm:rounded-lg">
                 <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
@@ -153,9 +159,9 @@
             try {
                 const response = await transactionService.createTransaction(payload);
                 const tx = response.data;
-                // Redirect to payment URL
-                if (tx && tx.payment_url) {
-                    window.location.href = tx.payment_url;
+                // Redirect to detail page
+                if (tx && tx.code) {
+                    window.location.href = `/pages/user/transaction-detail.html?code=${tx.code}`;
                 } else {
                     window.location.href = '/pages/user/transactions.html';
                 }

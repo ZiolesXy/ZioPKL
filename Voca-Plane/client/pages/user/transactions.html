@@ -31,6 +31,11 @@
 
     <!-- Content -->
     <main class="flex-grow max-w-7xl mx-auto py-10 sm:px-6 lg:px-8 w-full">
+        <div class="mb-4">
+            <a href="/pages/user/profile.html" class="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-500">
+                &larr; Back to Profile
+            </a>
+        </div>
         <div class="bg-white shadow sm:rounded-lg">
             <div class="px-4 py-5 border-b border-gray-200 sm:px-6">
                 <h3 class="text-lg leading-6 font-medium text-gray-900">Transaction History</h3>
@@ -86,15 +91,21 @@
                         </div>
                         
                         ${tx.payment_status === 'pending' || tx.payment_status === 'unpaid' ? `
-                            <div class="mt-4 flex justify-end space-x-3 w-full">
+                            <div class="mt-4 flex justify-end space-x-3 w-full border-t border-gray-100 pt-4">
                                 <button onclick="cancelTx('${tx.code}')" class="inline-flex items-center px-3 py-1.5 border border-red-300 text-xs font-medium rounded-md shadow-sm text-red-700 bg-white hover:bg-red-50 focus:outline-none">
                                     Cancel
                                 </button>
-                                <a href="${tx.payment_url}" target="_blank" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none">
+                                <a href="/pages/user/transaction-detail.html?code=${tx.code}" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none">
                                     Pay Now
                                 </a>
                             </div>
-                        ` : ''}
+                        ` : `
+                            <div class="mt-4 flex justify-end w-full border-t border-gray-100 pt-4">
+                                <a href="/pages/user/transaction-detail.html?code=${tx.code}" class="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none">
+                                    View Details
+                                </a>
+                            </div>
+                        `}
                     `;
                     list.appendChild(li);
                 });

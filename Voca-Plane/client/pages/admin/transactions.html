@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Users</title>
+    <title>Admin - Transactions</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -17,11 +17,12 @@
             <div class="flex items-center flex-shrink-0 px-4"><span class="text-xl font-bold tracking-wider text-blue-400">Admin Panel</span></div>
             <nav class="mt-5 flex-1 px-2 space-y-1">
                 <a href="/pages/admin/dashboard.html" class="text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md">Dashboard</a>
+                <a href="/pages/admin/transactions.html" class="bg-gray-800 text-white group flex items-center px-2 py-2 text-sm font-medium border-l-4 border-blue-500 rounded-md">Transactions</a>
                 <a href="/pages/admin/flights.html" class="text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md">Flights</a>
                 <a href="/pages/admin/airlines.html" class="text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md">Airlines</a>
                 <a href="/pages/admin/airports.html" class="text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md">Airports</a>
                 <a href="/pages/admin/promos.html" class="text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md">Promos</a>
-                <a href="/pages/admin/users.html" class="bg-gray-800 text-white group flex items-center px-2 py-2 text-sm font-medium border-l-4 border-blue-500 rounded-md">Users</a>
+                <a href="/pages/admin/users.html" class="text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md">Users</a>
                 <a href="/pages/user/profile.html" class="text-gray-300 hover:bg-gray-700 hover:text-white group flex items-center px-2 py-2 text-sm font-medium rounded-md mt-8">← Back</a>
             </nav>
         </div>
@@ -30,19 +31,23 @@
     <!-- Main -->
     <div class="md:pl-64 flex flex-col flex-1">
         <main class="flex-1 py-6 max-w-7xl mx-auto px-4 sm:px-6 md:px-8 w-full">
-            <h1 class="text-2xl font-semibold text-gray-900 mb-6">Manage Users</h1>
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-2xl font-semibold text-gray-900">System Transactions</h1>
+            </div>
+
             <div class="bg-white shadow overflow-hidden sm:rounded-lg">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name/Email</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transaction Code</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Flight</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Price</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r">Status</th>
                         </tr>
                     </thead>
-                    <tbody class="bg-white divide-y divide-gray-200" id="usersBody">
-                        <tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">Loading...</td></tr>
+                    <tbody class="bg-white divide-y divide-gray-200" id="txBody">
+                        <tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">Loading...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -83,19 +88,20 @@
         let currentPage = 1;
         const itemsPerPage = 8;
 
-        async function loadUsers() {
+        async function loadTransactions() {
             try {
-                const response = await adminService.getUsers();
+                const response = await adminService.getTransactions();
                 allData = response.data || [];
                 currentPage = 1;
                 renderPage();
             } catch (error) {
                 console.error(error);
+                document.getElementById('txBody').innerHTML = `<tr><td colspan="5" class="px-6 py-4 text-center text-red-500">${error.message || 'Error loading transactions'}</td></tr>`;
             }
         }
 
         function renderPage() {
-            const tbody = document.getElementById('usersBody');
+            const tbody = document.getElementById('txBody');
             tbody.innerHTML = '';
             
             const totalItems = allData.length;
@@ -110,27 +116,28 @@
             const currentItems = allData.slice(startIdx, endIdx);
 
             if (currentItems.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">No users found.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">No transactions found.</td></tr>';
             } else {
-                currentItems.forEach(u => {
+                currentItems.forEach(tx => {
                     const row = document.createElement('tr');
-                    const isBanned = u.is_banned;
                     
                     row.innerHTML = `
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm font-medium text-gray-900">${u.name}</div>
-                            <div class="text-sm text-gray-500">${u.email}</div>
+                            <div class="text-sm font-bold text-gray-900">${tx.code}</div>
+                            <div class="text-xs text-gray-500">${new Date(tx.created_at).toLocaleString()}</div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">${u.role}</span>
+                            <div class="text-sm font-medium text-gray-900">User ID: ${tx.user_id}</div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${isBanned ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}">
-                                ${isBanned ? 'Banned' : 'Active'}
-                            </span>
+                            <div class="text-sm text-gray-900">${tx.flight ? tx.flight.flight_number : 'N/A'}</div>
+                            <div class="text-xs text-gray-500">${tx.flight ? `${tx.flight.origin.code} > ${tx.flight.destination.code}` : ''}</div>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                            ${!isBanned ? `<button class="text-red-600 hover:text-red-900" onclick="banUser(${u.id})">Ban</button>` : `<button class="text-green-600 hover:text-green-900" onclick="unbanUser(${u.id})">Unban</button>`}
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="text-sm font-medium text-gray-900">Rp ${tx.total_price.toLocaleString()}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(tx.payment_status)}">${tx.payment_status.toUpperCase()}</span>
                         </td>
                     `;
                     tbody.appendChild(row);
@@ -151,27 +158,32 @@
             document.getElementById('nextBtnMobile').disabled = disableNext;
         }
 
+        function getStatusColor(status) {
+            switch(status.toLowerCase()) {
+                case 'settlement':
+                case 'capture':
+                case 'success':
+                case 'paid':
+                    return 'bg-green-100 text-green-800';
+                case 'pending':
+                case 'unpaid':
+                    return 'bg-yellow-100 text-yellow-800';
+                case 'cancel':
+                case 'deny':
+                case 'expire':
+                case 'failure':
+                    return 'bg-red-100 text-red-800';
+                default:
+                    return 'bg-gray-100 text-gray-800';
+            }
+        }
+
         document.getElementById('prevBtn').addEventListener('click', () => { if(currentPage > 1) { currentPage--; renderPage(); } });
         document.getElementById('nextBtn').addEventListener('click', () => { if(currentPage < Math.ceil(allData.length / itemsPerPage)) { currentPage++; renderPage(); } });
         document.getElementById('prevBtnMobile').addEventListener('click', () => { if(currentPage > 1) { currentPage--; renderPage(); } });
         document.getElementById('nextBtnMobile').addEventListener('click', () => { if(currentPage < Math.ceil(allData.length / itemsPerPage)) { currentPage++; renderPage(); } });
 
-        window.banUser = async function(id) {
-            if (!reason) return;
-            try {
-                await adminService.banUser(id, { reason });
-                loadUsers();
-            } catch (err) { alert(err.message); }
-        }
-
-        window.unbanUser = async function(id) {
-            try {
-                await adminService.unbanUser(id);
-                loadUsers();
-            } catch (err) { alert(err.message); }
-        }
-
-        loadUsers();
+        loadTransactions();
     </script>
 </body>
 </html>
