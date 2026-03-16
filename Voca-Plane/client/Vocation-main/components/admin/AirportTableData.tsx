@@ -36,7 +36,7 @@ import { Airport } from "@/lib/type/airport"
 import { GenericDeleteButton } from "./GenericDeleteButton"
 import { UpsertForm, FormField } from "./UpsertForm"
 
-export function AirportsTableData() {
+export function AirportsTableData({ refreshKey }: { refreshKey?: number }) {
   const [airports, setAirports] = useState<Airport[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
@@ -64,7 +64,7 @@ export function AirportsTableData() {
 
   useEffect(() => {
     fetchData()
-  }, [fetchData])
+  }, [fetchData, refreshKey])
 
   if (isLoading) {
     return (
@@ -79,15 +79,6 @@ export function AirportsTableData() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <UpsertForm
-          title="Bandara"
-          description="Tambahkan data bandara baru ke dalam sistem."
-          fields={airportFields}
-          onSubmit={createAirport}
-          onSuccess={fetchData}
-        />
-      </div>
       <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
         <Table>
           <TableHeader className="bg-muted/50">

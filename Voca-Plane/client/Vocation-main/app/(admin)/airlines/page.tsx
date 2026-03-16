@@ -1,3 +1,5 @@
+"use client"
+import { useState } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -6,8 +8,23 @@ import { Button } from "@/components/ui/button"
 import { AirlinesTableData } from "@/components/admin/AirlinesTableData"
 import Link from "next/link"
 import { Separator } from "@/components/ui/separator"
+import { UpsertForm, FormField } from "@/components/admin/UpsertForm"
+import { createAirline } from "@/lib/api/AirlineApi"
 
-export default function FlightSchedulePage() {
+export default function AirlineMonitoringPage() {
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  const airlineFields: FormField[] = [
+    { name: "name", label: "Nama Maskapai", placeholder: "Contoh: Garuda Indonesia", required: true },
+    { name: "code", label: "Kode IATA", placeholder: "Contoh: GA", required: true },
+    { 
+      name: "logo", 
+      label: "Logo Maskapai", 
+      type: "file", 
+      placeholder: "Pilih gambar logo" 
+    },
+  ]
+
   return (
     <div className="p-5 space-y-4">
       <div className="flex flex-col space-y-2">
@@ -26,10 +43,15 @@ export default function FlightSchedulePage() {
               Monitor Airline for the flight booking system.
             </p>
           </div>
-          <Button className="gap-2">
-            <PlusCircle className="h-4 w-4" />
-            Add New Airline
-          </Button>
+          <UpsertForm
+            title="Airline"
+            description="Authorize a new carrier for the Voca-Plane fleet."
+            fields={airlineFields}
+            triggerLabel="Add New Airline"
+            triggerIcon={<PlusCircle className="h-4 w-4" />}
+            onSubmit={createAirline}
+            onSuccess={() => setRefreshKey(prev => prev + 1)}
+          />
         </div>
       </div>
 
@@ -46,7 +68,7 @@ export default function FlightSchedulePage() {
           </div>
         </CardHeader>
         <CardContent>
-          <AirlinesTableData />
+          <AirlinesTableData refreshKey={refreshKey} />
         </CardContent>
       </Card>
     </div>

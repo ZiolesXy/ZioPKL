@@ -18,67 +18,45 @@ async function SearchPage() {
   const flightsData = await getFlights()
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-background">
       {/* Premium Hero Section */}
-      <section className="relative pt-12 pb-24 overflow-hidden">
-        {/* Abstract Background Shapes */}
-        <div className="absolute top-0 right-0 w-[60%] h-[100%] bg-primary/5 rounded-bl-[10rem] -z-10" />
-        <div className="absolute top-20 left-20 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl -z-10 animate-pulse" />
+      <section className="relative pt-40 pb-32 overflow-hidden">
+        {/* Simplified Background Mesh */}
+        <div className="absolute top-0 left-0 w-full h-full -z-10 bg-[radial-gradient(circle_at_50%_0%,rgba(var(--primary),0.05),transparent_70%)]" />
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-primary/10 rounded-full blur-[80px] -z-10" />
+        <div className="absolute top-1/2 -left-20 w-80 h-80 bg-indigo-500/5 rounded-full blur-[60px] -z-10" />
         
-        <div className="container mx-auto px-6">
-          <div className="flex flex-col lg:flex-row items-center gap-16">
-            <div className="flex-1 space-y-8 animate-in fade-in slide-in-from-left-8 duration-1000">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-sm border border-slate-100">
-                <span className="flex size-2 rounded-full bg-primary animate-ping" />
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Premium Travel Experience</span>
-              </div>
-              <h1 className="text-6xl lg:text-8xl font-black text-slate-900 tracking-tighter leading-[0.9]">
-                Fly Beyond <br />
-                <span className="text-primary italic">Limits.</span>
-              </h1>
-              <p className="max-w-md text-slate-500 text-lg font-medium leading-relaxed">
-                Experience the future of flight booking with our premium, streamlined service. 
-                Your journey to the world's finest destinations starts here.
-              </p>
-              
-              {/* Restored Search Bar Style - cleaner & more integrated */}
-              <div className="w-full max-w-2xl bg-white p-2 rounded-[2.5rem] shadow-2xl shadow-slate-200/50 border border-slate-100 flex flex-col md:flex-row gap-2">
-                <div className="flex-1 flex items-center px-6 gap-3">
-                  <Search className="size-5 text-primary" />
-                  <input 
-                    type="text" 
-                    placeholder="Where to next?" 
-                    className="w-full h-14 bg-transparent border-none focus:ring-0 text-slate-900 font-bold placeholder:text-slate-300"
-                  />
-                </div>
-                <button className="h-14 px-10 bg-primary text-white font-black rounded-[2rem] shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all">
-                  Search Flights
-                </button>
-              </div>
+        <div className="container mx-auto px-8">
+          <div className="max-w-4xl mx-auto text-center space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
+            <div className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-slate-900/5 dark:bg-white/5 border border-primary/10">
+              <span className="flex size-2 rounded-full bg-primary" />
+              <span className="text-[11px] font-black uppercase tracking-[0.3em] text-primary/80">Premium Jet Experience</span>
             </div>
 
-            <div className="flex-1 relative hidden lg:block animate-in fade-in slide-in-from-right-8 duration-1000">
-              <div className="relative h-[550px] w-full max-w-lg ml-auto rounded-[3.5rem] overflow-hidden shadow-2xl rotate-[3deg] group">
-                <Image
-                  src="/destination.jpg"
-                  alt="Destination"
-                  fill
-                  className="object-cover transition-transform duration-1000 group-hover:scale-110"
-                  priority
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-primary/30 to-transparent mix-blend-overlay" />
-              </div>
-              {/* Floating Badge */}
-              <div className="absolute -bottom-6 -left-6 bg-white p-6 rounded-[2rem] shadow-2xl border border-slate-50 animate-bounce-slow">
-                <div className="flex items-center gap-4">
-                  <div className="bg-primary/10 p-4 rounded-2xl">
-                    <Plane className="size-6 text-primary rotate-45" />
-                  </div>
-                  <div>
-                    <p className="text-xl font-black text-slate-900">500+</p>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Active Routes</p>
-                  </div>
+            <h1 className="text-7xl lg:text-[10rem] font-black text-slate-900 dark:text-white tracking-tighter leading-[0.85]">
+              Sky&apos;s no <br />
+              <span className="text-primary italic">longer the limit.</span>
+            </h1>
+
+            <p className="max-w-2xl mx-auto text-slate-500 dark:text-slate-400 text-xl font-medium leading-relaxed">
+              Experience the future of seamless flight booking. <br className="hidden md:block" />
+              High-tier service for world-class travelers.
+            </p>
+            
+            {/* Integrated Search Bar - Optimized */}
+            <div className="w-full max-w-3xl mx-auto group">
+              <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl p-3 rounded-[3rem] shadow-xl border border-white/40 dark:border-white/5 flex flex-col md:flex-row gap-3 transition-all">
+                <div className="flex-1 flex items-center px-8 gap-4">
+                  <Search className="size-6 text-primary/60" />
+                  <input 
+                    type="text" 
+                    placeholder="Search routes or destinations..." 
+                    className="w-full h-16 bg-transparent border-none focus:ring-0 text-slate-900 dark:text-white font-bold text-lg placeholder:text-slate-300 dark:placeholder:text-slate-700"
+                  />
                 </div>
+                <button className="h-16 px-12 bg-primary text-white font-black text-lg rounded-[2.5rem] shadow-lg shadow-primary/20 hover:scale-[1.01] active:scale-95 transition-transform duration-200">
+                  Book Now
+                </button>
               </div>
             </div>
           </div>
@@ -117,7 +95,7 @@ async function SearchPage() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-y-24 gap-x-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-y-16 gap-x-8">
             {flightsData.data.slice(0, 4).map((flight: Flight) => (
               <CardTicket key={flight.id} flight={flight} />
             ))}
@@ -132,7 +110,7 @@ async function SearchPage() {
             {/* Left: Image with Floating Cards */}
             <div className="w-full lg:w-1/2">
               <div className="relative">
-                <div className="relative h-[600px] w-full max-w-md mx-auto aspect-[3/4] rounded-[3rem] overflow-hidden shadow-2xl rotate-[-2deg]">
+                <div className="relative h-[600px] w-full max-w-md mx-auto aspect-[3/4] rounded-[3rem] overflow-hidden shadow-xl">
                   <Image
                     src="/destination.jpg"
                     alt="Why Voca Plane"
@@ -142,8 +120,8 @@ async function SearchPage() {
                   <div className="absolute inset-0 bg-primary/10 mix-blend-overlay" />
                 </div>
 
-                {/* Floating Elements */}
-                <Card className="absolute top-10 -left-10 md:-left-20 p-6 rounded-3xl shadow-2xl border-none animate-bounce-slow max-w-[200px]">
+                {/* Simplified Floating Elements */}
+                <Card className="absolute top-10 -left-10 md:-left-20 p-6 rounded-3xl shadow-xl border-none max-w-[200px]">
                   <div className="flex items-center gap-4">
                     <div className="bg-yellow-100 p-3 rounded-2xl">
                       <span className="text-yellow-600 text-2xl font-bold">⭐</span>
@@ -155,13 +133,13 @@ async function SearchPage() {
                   </div>
                 </Card>
 
-                <Card className="absolute bottom-20 -right-10 p-6 rounded-[2rem] shadow-2xl border-none bg-white/90 backdrop-blur-xl max-w-[240px]">
+                <Card className="absolute bottom-20 -right-10 p-6 rounded-[2rem] shadow-xl border-none bg-white/95 backdrop-blur-md max-w-[240px]">
                   <div className="space-y-4">
                     <div className="flex -space-x-3">
                       {[1, 2, 3, 4].map((i) => (
-                        <div key={i} className="w-10 h-10 rounded-full border-4 border-white bg-slate-200" />
+                        <div key={i} className="w-10 h-10 rounded-full border-2 border-white bg-slate-200" />
                       ))}
-                      <div className="w-10 h-10 rounded-full border-4 border-white bg-primary flex items-center justify-center text-[10px] text-white font-black">
+                      <div className="w-10 h-10 rounded-full border-2 border-white bg-primary flex items-center justify-center text-[10px] text-white font-black">
                         +1K
                       </div>
                     </div>
@@ -221,13 +199,13 @@ async function SearchPage() {
       {/* Explore More Section */}
       <section className="relative py-32 px-4 overflow-hidden">
         <div className="absolute inset-0 bg-slate-950 -z-10" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-primary/10 rounded-full blur-[150px] -z-10" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-primary/5 rounded-full blur-[100px] -z-10" />
 
         <div className="container mx-auto relative z-10">
           <div className="flex flex-col md:flex-row justify-between items-center md:items-end mb-20 gap-8">
             <div className="text-center md:text-left">
               <span className="text-primary font-black tracking-[0.3em] uppercase text-xs mb-4 block">Discover More</span>
-              <h2 className="text-5xl md:text-7xl font-black text-white leading-none">Explore All<br />Available Flights</h2>
+              <h2 className="text-5xl md:text-7xl font-black text-primary leading-none">Explore All<br />Available Flights</h2>
             </div>
             <Link
               href="/flight"
@@ -238,7 +216,7 @@ async function SearchPage() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-y-24 gap-x-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-y-16 gap-x-8">
             {flightsData.data.slice(4, 8).map((flight: Flight) => (
               <CardTicket key={flight.id} flight={flight} />
             ))}
@@ -249,9 +227,9 @@ async function SearchPage() {
       {/* CTA Section */}
       <section className="py-32 px-4">
         <div className="container mx-auto max-w-6xl">
-          <div className="relative bg-primary rounded-[4rem] p-12 md:p-24 text-center overflow-hidden shadow-2xl shadow-primary/30">
+          <div className="relative bg-primary rounded-[4rem] p-12 md:p-24 text-center overflow-hidden shadow-xl shadow-primary/20">
             {/* Decorative element */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-xl -translate-y-1/2 translate-x-1/2" />
             
             <div className="relative z-10 space-y-10">
               <h2 className="text-4xl md:text-7xl font-black text-white tracking-tighter leading-tight">

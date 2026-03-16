@@ -34,7 +34,7 @@ import { Airline } from "@/lib/type/airline"
 import { GenericDeleteButton } from "./GenericDeleteButton"
 import { UpsertForm, FormField } from "./UpsertForm"
 
-export function AirlinesTableData() {
+export function AirlinesTableData({ refreshKey }: { refreshKey?: number }) {
   const [airlines, setAirlines] = useState<Airline[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
@@ -68,7 +68,7 @@ const airlineFields: FormField[] = [
 
   useEffect(() => {
     fetchData()
-  }, [fetchData])
+  }, [fetchData, refreshKey])
 
   if (isLoading) {
     return (
@@ -83,15 +83,6 @@ const airlineFields: FormField[] = [
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <UpsertForm
-          title="Maskapai"
-          description="Tambahkan data maskapai baru ke dalam sistem."
-          fields={airlineFields}
-          onSubmit={createAirline}
-          onSuccess={fetchData}
-        />
-      </div>
       <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
         <Table>
           <TableHeader className="bg-muted/50">

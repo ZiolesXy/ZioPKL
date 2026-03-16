@@ -1,14 +1,25 @@
+"use client"
+import { useState } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Search, ChevronRight, PlusCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { AirlinesTableData } from "@/components/admin/AirlinesTableData"
 import Link from "next/link"
 import { Separator } from "@/components/ui/separator"
 import { AirportsTableData } from "@/components/admin/AirportTableData"
+import { UpsertForm, FormField } from "@/components/admin/UpsertForm"
+import { createAirport } from "@/lib/api/AirportApi"
 
-export default function FlightSchedulePage() {
+export default function AirportMonitoringPage() {
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  const airportFields: FormField[] = [
+    { name: "code", label: "Kode Bandara", placeholder: "Contoh: CGK", required: true },
+    { name: "name", label: "Nama Bandara", placeholder: "Contoh: Soekarno-Hatta", required: true },
+    { name: "city", label: "Kota", placeholder: "Contoh: Jakarta", required: true },
+  ]
+
   return (
     <div className="p-5 space-y-4">
       <div className="flex flex-col space-y-2">
@@ -27,10 +38,15 @@ export default function FlightSchedulePage() {
               Monitor Airport for the flight booking system.
             </p>
           </div>
-          <Button className="gap-2">
-            <PlusCircle className="h-4 w-4" />
-            Add New Airport
-          </Button>
+          <UpsertForm
+            title="Airport"
+            description="Initialize a new airport node in the global aviation network."
+            fields={airportFields}
+            triggerLabel="Add New Airport"
+            triggerIcon={<PlusCircle className="h-4 w-4" />}
+            onSubmit={createAirport}
+            onSuccess={() => setRefreshKey(prev => prev + 1)}
+          />
         </div>
       </div>
 
@@ -47,7 +63,7 @@ export default function FlightSchedulePage() {
           </div>
         </CardHeader>
         <CardContent>
-          <AirportsTableData />
+          <AirportsTableData refreshKey={refreshKey} />
         </CardContent>
       </Card>
     </div>

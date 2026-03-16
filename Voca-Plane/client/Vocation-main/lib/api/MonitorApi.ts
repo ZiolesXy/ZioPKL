@@ -12,3 +12,9 @@ export async function getInformation() {
   const response = await axiosInstance.get("/admin/dashboard", { headers });
   return response.data;
 }
+
+export async function updateUserAdmin(id: string, data: any) {
+  const headers = await getAuthHeaders();
+  const response = await axiosInstance.patch(`/admin/users/${id}/role`, data, { headers });
+  return response.data;
+}
