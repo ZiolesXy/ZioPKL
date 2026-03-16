@@ -51,7 +51,7 @@ func SetUpRoutes(r *gin.Engine,
 		// Public Flight Search
 		v1.GET("/flights", flightHandler.GetAll)
 		v1.GET("/flights/all", flightHandler.GetAllFull)
-		v1.GET("/flights/search", flightHandler.Search)
+		v1.GET("/flight/search", flightHandler.Search)
 		v1.GET("/flights/:id", flightHandler.GetByID)
 		v1.GET("/flights/:id/seats", flightHandler.GetSeats)
 		v1.GET("/airports", adminHandler.GetAirports)
