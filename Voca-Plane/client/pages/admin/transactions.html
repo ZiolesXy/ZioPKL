@@ -114,8 +114,19 @@
                 const response = await adminService.getTransactions(page, itemsPerPage);
                 allData = response.data || [];
                 currentPage = page;
-                totalItems = response.meta.total || allData.length;
-                renderPage();
+                
+                if (response.meta) {
+                    totalItems = response.meta.total || allData.length;
+                    renderPage();
+                } else {
+                    totalItems = allData.length;
+                    renderPage();
+                    // Additional hide/clear for missing meta case
+                    document.getElementById('totalItems').textContent = totalItems;
+                    document.getElementById('pageStart').textContent = totalItems > 0 ? 1 : 0;
+                    document.getElementById('pageEnd').textContent = totalItems;
+                    document.getElementById('paginationNav').innerHTML = '';
+                }
             } catch (error) {
                 console.error(error);
                 document.getElementById('txBody').innerHTML = `<tr><td colspan="6" class="px-6 py-4 text-center text-red-500">${error.message || 'Error loading transactions'}</td></tr>`;

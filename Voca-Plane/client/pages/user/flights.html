@@ -59,121 +59,222 @@
 
         <!-- Results -->
         <div class="bg-white shadow sm:rounded-lg">
-            <div class="px-4 py-5 border-b border-gray-200 sm:px-6 flex justify-between">
+            <div class="px-4 py-3 border-b border-gray-200 sm:px-6 flex justify-between items-center">
                 <h3 class="text-lg leading-6 font-medium text-gray-900">Available Flights</h3>
+                <p id="showingText" class="text-sm text-gray-500"></p>
             </div>
             <ul class="divide-y divide-gray-200" id="flightsList">
                 <li class="px-4 py-4 sm:px-6 text-center text-gray-500">Search to see flights</li>
             </ul>
+        </div>
+
+        <!-- Pagination Control -->
+        <div id="paginationContainer" class="mt-6 flex items-center justify-center bg-white px-4 py-3 sm:px-6 shadow sm:rounded-lg hidden">
+            <nav id="paginationNav" class="isolate inline-flex -space-x-px rounded-md shadow-sm items-center" aria-label="Pagination">
+                <!-- Buttons will be injected here -->
+            </nav>
         </div>
     </main>
 
     <script type="module">
         import { flightService } from '../../services/flightService.js';
 
-        document.getElementById('searchForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
+        let currentPage = 1;
+        let totalItems = 0;
+        const itemsPerPage = 10;
+        let lastSearchParams = null;
+
+        async function search(page = 1) {
             const origin = document.getElementById('origin').value;
             const destination = document.getElementById('destination').value;
             const date = document.getElementById('date').value;
             const flightList = document.getElementById('flightsList');
+            const showingText = document.getElementById('showingText');
+            const pgContainer = document.getElementById('paginationContainer');
 
             flightList.innerHTML = '<li class="px-4 py-4 sm:px-6 text-center text-gray-500">Searching...</li>';
+            pgContainer.classList.add('hidden');
+            showingText.textContent = '';
 
             try {
-                const response = await flightService.searchFlights({ origin, destination, date });
+                const params = { origin, destination, date };
+                lastSearchParams = params;
+                const response = await flightService.searchFlights(params, page, itemsPerPage);
                 const flights = response.data || [];
+                
+                currentPage = page;
+                totalItems = (response.meta && response.meta.total) ? response.meta.total : flights.length;
                 
                 if (flights.length === 0) {
                     flightList.innerHTML = '<li class="px-4 py-4 sm:px-6 text-center text-gray-500">No flights found.</li>';
                     return;
                 }
 
-                flightList.innerHTML = '';
-                flights.forEach(f => {
-                    const li = document.createElement('li');
-                    li.innerHTML = `
-                        <div class="px-4 py-4 sm:px-6 hover:bg-gray-50 flex items-center justify-between">
-                            <div class="flex items-center space-x-4">
-                                ${f.airline.logo_url ? `<img src="${f.airline.logo_url}" alt="${f.airline.name}" class="h-10 w-10 rounded-full">` : '<div class="h-10 w-10 rounded-full bg-gray-200"></div>'}
-                                <div>
-                                    <p class="text-sm font-medium text-blue-600 truncate">${f.airline.name} (${f.flight_number})</p>
-                                    <p class="text-xs text-gray-500">${new Date(f.departure_time).toLocaleString()} - ${new Date(f.arrival_time).toLocaleString()}</p>
-                                </div>
-                            </div>
-                            <div class="mt-2 sm:flex sm:justify-between items-center sm:mt-0">
-                                <div class="flex items-center text-sm text-gray-500 mr-6">
-                                    <span class="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">${f.available_seats} seats available</span>
-                                </div>
-                                <a href="/pages/user/seats.html?flightId=${f.id}" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none">
-                                    Select Seats
-                                </a>
-                            </div>
-                        </div>
-                    `;
-                    flightList.appendChild(li);
-                });
+                renderFlights(flights);
+                const totalPages = Math.ceil(totalItems / itemsPerPage);
+                if (totalPages > 1) {
+                    pgContainer.classList.remove('hidden');
+                    renderPagination(totalPages, search);
+                }
+
+                const start = (currentPage - 1) * itemsPerPage + 1;
+                const end = Math.min(currentPage * itemsPerPage, totalItems);
+                showingText.textContent = `Showing ${start} to ${end} of ${totalItems} results`;
 
             } catch (error) {
                 flightList.innerHTML = `<li class="px-4 py-4 sm:px-6 text-center text-red-500">${error.message || 'Error fetching flights'}</li>`;
             }
+        }
+
+        document.getElementById('searchForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            search(1);
         });
-        
-        // Auto load full list on init (optional, depending on UX. Server has /flights)
-        async function loadAll() {
-            try {
-                const response = await flightService.getAllFlights();
-                const flights = response.data || [];
-                const flightList = document.getElementById('flightsList');
-                if (flights.length === 0) return;
-                
-                flightList.innerHTML = '';
-                flights.forEach(f => {
-                    const li = document.createElement('li');
-                    li.innerHTML = `
-                        <div class="px-4 py-4 sm:px-6 hover:bg-gray-50 flex items-center justify-between transition duration-150">
-                            <div class="flex items-center space-x-4">
-                                <div class="h-12 w-12 rounded-full border border-gray-200 flex items-center justify-center bg-gray-50">
-                                    ${f.airline.logo_url ? `<img src="${f.airline.logo_url}" alt="${f.airline.name}" class="h-8 w-8 object-contain">` : `<span class="text-xs font-bold text-gray-400">${f.airline.code}</span>`}
-                                </div>
-                                <div>
-                                    <p class="text-sm font-bold text-gray-900 truncate">${f.airline.name} <span class="text-xs font-normal text-gray-500 ml-1">${f.flight_number}</span></p>
-                                    <div class="flex items-center mt-1 text-sm text-gray-500">
-                                        <div class="flex flex-col">
-                                            <span class="font-semibold text-gray-700">${new Date(f.departure_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                                            <span class="text-xs">${f.origin.city} (${f.origin.code})</span>
-                                        </div>
-                                        <span class="mx-3 text-gray-300">→</span>
-                                        <div class="flex flex-col">
-                                            <span class="font-semibold text-gray-700">${new Date(f.arrival_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                                            <span class="text-xs">${f.destination.city} (${f.destination.code})</span>
-                                        </div>
+
+        function renderFlights(flights) {
+            const flightList = document.getElementById('flightsList');
+            flightList.innerHTML = '';
+            flights.forEach(f => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <div class="px-4 py-4 sm:px-6 hover:bg-gray-50 flex items-center justify-between transition duration-150">
+                        <div class="flex items-center space-x-4">
+                            <div class="h-12 w-12 rounded-full border border-gray-200 flex items-center justify-center bg-gray-50">
+                                ${f.airline?.logo_url ? `<img src="${f.airline.logo_url}" alt="${f.airline.name}" class="h-8 w-8 object-contain">` : `<span class="text-xs font-bold text-gray-400">${f.airline?.code || '---'}</span>`}
+                            </div>
+                            <div>
+                                <p class="text-sm font-bold text-gray-900 truncate">${f.airline?.name || 'Unknown Airline'} <span class="text-xs font-normal text-gray-500 ml-1">${f.flight_number}</span></p>
+                                <div class="flex items-center mt-1 text-sm text-gray-500">
+                                    <div class="flex flex-col">
+                                        <span class="font-semibold text-gray-700">${new Date(f.departure_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                        <span class="text-xs">${f.origin?.city || '---'} (${f.origin?.code || '---'})</span>
+                                    </div>
+                                    <span class="mx-3 text-gray-300">→</span>
+                                    <div class="flex flex-col">
+                                        <span class="font-semibold text-gray-700">${new Date(f.arrival_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                        <span class="text-xs">${f.destination?.city || '---'} (${f.destination?.code || '---'})</span>
                                     </div>
                                 </div>
                             </div>
-                            <div class="mt-2 sm:flex flex-col items-end sm:mt-0">
-                                <div class="text-sm text-gray-500 mb-2">
-                                    <span class="${f.available_seats > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'} px-2 py-1 rounded text-xs font-medium shadow-sm">
-                                        ${f.available_seats > 0 ? f.available_seats + ' seats right now' : 'Sold Out'}
-                                    </span>
-                                </div>
-                                ${f.available_seats > 0 ? 
-                                `<a href="/pages/user/seats.html?flightId=${f.id}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none transition-colors">
-                                    Book Now
-                                </a>` : 
-                                `<button disabled class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-gray-400 bg-gray-100 cursor-not-allowed">
-                                    Sold Out
-                                </button>`}
-                            </div>
                         </div>
-                    `;
-                    flightList.appendChild(li);
-                });
-            } catch (err) {
-                console.error(err);
-            }
+                        <div class="mt-2 sm:flex flex-col items-end sm:mt-0">
+                            <div class="text-sm text-gray-500 mb-2">
+                                <span class="${f.available_seats > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'} px-2 py-1 rounded text-xs font-medium shadow-sm">
+                                    ${f.available_seats > 0 ? f.available_seats + ' seats right now' : 'Sold Out'}
+                                </span>
+                            </div>
+                            ${f.available_seats > 0 ? 
+                            `<a href="/pages/user/seats.html?flightId=${f.id}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none transition-colors">
+                                Book Now
+                            </a>` : 
+                            `<button disabled class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-gray-400 bg-gray-100 cursor-not-allowed">
+                                Sold Out
+                            </button>`}
+                        </div>
+                    </div>
+                `;
+                flightList.appendChild(li);
+            });
         }
-        loadAll();
+
+        function renderPagination(totalPages, loadFn) {
+            const nav = document.getElementById('paginationNav');
+            nav.innerHTML = '';
+
+            const prevBtn = document.createElement('button');
+            prevBtn.className = `relative inline-flex items-center px-4 py-2 text-sm font-medium border border-gray-300 rounded-l-md bg-white hover:bg-gray-50 text-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed`;
+            prevBtn.disabled = currentPage === 1;
+            prevBtn.innerHTML = '&lsaquo; Previous';
+            prevBtn.onclick = () => { if(currentPage > 1) loadFn(currentPage - 1); };
+            nav.appendChild(prevBtn);
+
+            const windowSize = 1;
+            const pages = [];
+            pages.push(1);
+            let start = Math.max(2, currentPage - windowSize);
+            let end = Math.min(totalPages - 1, currentPage + windowSize);
+
+            if (start > 2) pages.push('...');
+            for (let i = start; i <= end; i++) pages.push(i);
+            if (end < totalPages - 1) pages.push('...');
+            if (totalPages > 1) pages.push(totalPages);
+
+            pages.forEach(p => {
+                if (p === '...') {
+                    const span = document.createElement('span');
+                    span.className = 'relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300';
+                    span.textContent = '...';
+                    nav.appendChild(span);
+                } else {
+                    const btn = document.createElement('button');
+                    if (p === currentPage) {
+                        btn.className = 'relative z-10 inline-flex items-center bg-blue-600 px-4 py-2 text-sm font-semibold text-white focus:z-20 rounded-md mx-1';
+                        btn.textContent = p;
+                    } else {
+                        btn.className = 'relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 rounded-md mx-1';
+                        btn.textContent = p;
+                        btn.onclick = () => loadFn(p);
+                    }
+                    nav.appendChild(btn);
+                }
+            });
+
+            const nextBtn = document.createElement('button');
+            nextBtn.className = `relative inline-flex items-center px-4 py-2 text-sm font-medium border border-gray-300 rounded-r-md bg-white hover:bg-gray-50 text-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed`;
+            nextBtn.disabled = currentPage === totalPages;
+            nextBtn.innerHTML = 'Next &rsaquo;';
+            nextBtn.onclick = () => { if(currentPage < totalPages) loadFn(currentPage + 1); };
+            nav.appendChild(nextBtn);
+        }
+
+        async function init() {
+            try {
+                const flightList = document.getElementById('flightsList');
+                const pgContainer = document.getElementById('paginationContainer');
+                const showingText = document.getElementById('showingText');
+                
+                const response = await flightService.getAllFlights(1, itemsPerPage);
+                const flights = response.data || [];
+                
+                totalItems = (response.meta && response.meta.total) ? response.meta.total : flights.length;
+                
+                if (flights.length === 0) return;
+                
+                renderFlights(flights);
+                const totalPages = Math.ceil(totalItems / itemsPerPage);
+                if (totalPages > 1) {
+                    pgContainer.classList.remove('hidden');
+                    renderPagination(totalPages, async (p) => {
+                        const res = await flightService.getAllFlights(p, itemsPerPage);
+                        currentPage = p;
+                        renderFlights(res.data || []);
+                        renderPagination(totalPages, async (p2) => { /* logic for further clicks */ }); 
+                        // Simplified for init, search handles it better
+                    });
+                }
+                
+                const start = (currentPage - 1) * itemsPerPage + 1;
+                const end = Math.min(currentPage * itemsPerPage, totalItems);
+                showingText.textContent = `Showing ${start} to ${end} of ${totalItems} results`;
+            } catch (err) { console.error(err); }
+        }
+
+        // Refined loadFunc for init
+        async function loadInitialPage(page) {
+            try {
+                const response = await flightService.getAllFlights(page, itemsPerPage);
+                currentPage = page;
+                renderFlights(response.data || []);
+                const totalPages = Math.ceil(totalItems / itemsPerPage);
+                renderPagination(totalPages, loadInitialPage);
+                const start = (currentPage - 1) * itemsPerPage + 1;
+                const end = Math.min(currentPage * itemsPerPage, totalItems);
+                document.getElementById('showingText').textContent = `Showing ${start} to ${end} of ${totalItems} results`;
+            } catch (err) { console.error(err); }
+        }
+
+        loadInitialPage(1);
     </script>
+>
 </body>
 </html>

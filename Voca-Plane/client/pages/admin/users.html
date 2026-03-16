@@ -30,7 +30,10 @@
     <!-- Main -->
     <div class="md:pl-64 flex flex-col flex-1">
         <main class="flex-1 py-6 max-w-7xl mx-auto px-4 sm:px-6 md:px-8 w-full">
-            <h1 class="text-2xl font-semibold text-gray-900 mb-6">Manage Users</h1>
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-2xl font-semibold text-gray-900">Manage Users</h1>
+                <p id="showingText" class="text-sm text-gray-500"></p>
+            </div>
             <div class="bg-white shadow overflow-hidden sm:rounded-lg">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
@@ -69,9 +72,21 @@
                 const response = await adminService.getUsers(page, itemsPerPage);
                 allData = response.data || [];
                 currentPage = page;
-                totalItems = response.meta.total || allData.length;
+                
+                if (response.meta) {
+                    totalItems = response.meta.total || allData.length;
+                    renderPagination(Math.ceil(totalItems / itemsPerPage));
+                    
+                    const start = (currentPage - 1) * itemsPerPage + 1;
+                    const end = Math.min(currentPage * itemsPerPage, totalItems);
+                    document.getElementById('showingText').textContent = `Showing ${start} to ${end} of ${totalItems} results`;
+                } else {
+                    totalItems = allData.length;
+                    document.getElementById('paginationNav').innerHTML = '';
+                    document.getElementById('showingText').textContent = '';
+                }
+                
                 renderPage();
-                renderPagination(Math.ceil(totalItems / itemsPerPage));
             } catch (error) {
                 console.error(error);
                 document.getElementById('usersBody').innerHTML = `<tr><td colspan="4" class="px-6 py-4 text-center text-red-500">${error.message || 'Error loading users'}</td></tr>`;
