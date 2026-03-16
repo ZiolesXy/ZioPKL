@@ -38,9 +38,10 @@ func (r *flightRepository) Search(ctx context.Context, origin, destination, date
 		Preload("Destination").
 		Preload("FlightClasses").
 		Preload("FlightSeats.Seat").
-		Where("origin.name LIKE %?% AND dest.name LIKE ?", "%"+origin+"%", "%"+destination+"%").
+		// Perbaikan: Menghapus % di dalam string query agar binding parameter benar
+		Where("origin.name LIKE ? AND dest.name LIKE ?", "%"+origin+"%", "%"+destination+"%").
 		Where("flights.departure_time BETWEEN ? AND ?", startOfDay, endOfDay)
-	
+
 	if classType != "" {
 		query = query.Joins("JOIN flight_classes ON flight_classes.flight_id = flights.id").
 			Where("flight_classes.class_type = ?", classType)
@@ -71,51 +72,75 @@ func (r *flightRepository) GetClassByID(ctx context.Context, id uint) (*models.F
 }
 
 func (r *flightRepository) GetAll(ctx context.Context, page, limit int, sortBy, order string) ([]models.Flight, int64, error) {
+
 	type flightScan struct {
 		models.Flight
-		AvailableSeats int `gorm:"column:available_seats"`
+		AvailableSeats int     `gorm:"column:available_seats"`
+		MinPrice       float64 `gorm:"column:min_price"`
 	}
 
 	var scannedFlights []flightScan
 	var total int64
 
-	available := true
 	now := time.Now()
-	query := r.db.WithContext(ctx).Model(&models.Flight{}).
+
+	query := r.db.WithContext(ctx).
+		Model(&models.Flight{}).
 		Select(`
 			flights.*,
+
 			(
 				SELECT COUNT(*)
 				FROM flight_seats
 				WHERE flight_seats.flight_id = flights.id
-				AND flight_seats.is_available = ?
+				AND flight_seats.is_available = TRUE
 				AND (flight_seats.locked_until IS NULL OR flight_seats.locked_until < ?)
-			) AS available_seats
-		`, available, now).
+			) AS available_seats,
+
+			(
+				SELECT MIN(price)
+				FROM flight_classes
+				WHERE flight_classes.flight_id = flights.id
+			) AS min_price
+		`, now)
+
+	// total count
+	query.Session(&gorm.Session{}).Count(&total)
+
+	// whitelist sorting
+	allowedColumns := map[string]bool{
+		"id":              true,
+		"departure_time":  true,
+		"arrival_time":    true,
+		"total_seats":     true,
+		"available_seats": true,
+		"min_price":       true,
+	}
+
+	// map price → min_price
+	if sortBy == "price" {
+		sortBy = "min_price"
+	}
+
+	query = helper.ApplySorting(query, sortBy, order, allowedColumns, "flights.id ASC")
+
+	offset := (page - 1) * limit
+
+	err := query.
 		Preload("Airline").
 		Preload("Origin").
 		Preload("Destination").
-		Preload("FlightClasses")
-	
-	query.Session(&gorm.Session{}).Count(&total)
+		Preload("FlightClasses").
+		Offset(offset).
+		Limit(limit).
+		Find(&scannedFlights).Error
 
-	// Flights Whitelist
-	allowedColumns := map[string]bool{
-		"id":             true,
-		"departure_time": true,
-		"arrival_time":   true,
-		"total_seats":    true,
-	}
-
-	query = helper.ApplySorting(query, sortBy, order, allowedColumns, "id ASC")
-
-	offset := (page - 1) * limit
-	err := query.Offset(offset).Limit(limit).Find(&scannedFlights).Error
 	if err != nil {
 		return nil, 0, err
 	}
 
 	flights := make([]models.Flight, len(scannedFlights))
+
 	for i, s := range scannedFlights {
 		flights[i] = s.Flight
 		flights[i].AvailableSeats = s.AvailableSeats
@@ -124,7 +149,7 @@ func (r *flightRepository) GetAll(ctx context.Context, page, limit int, sortBy, 
 	return flights, total, nil
 }
 
-func(r *flightRepository) GetAllFull(ctx context.Context) ([]models.Flight, error) {
+func (r *flightRepository) GetAllFull(ctx context.Context) ([]models.Flight, error) {
 	type flightScan struct {
 		models.Flight
 		AvailableSeats int `gorm:"column:available_seats"`
@@ -137,15 +162,15 @@ func(r *flightRepository) GetAllFull(ctx context.Context) ([]models.Flight, erro
 	err := r.db.WithContext(ctx).
 		Model(&models.Flight{}).
 		Select(`
-			flights.*,
-			(
-				SELECT COUNT(*)
-				FROM flight_seats
-				WHERE flight_seats.flight_id = flights.id
-				AND flight_seats.is_available = ?
-				AND (flight_seats.locked_until IS NULL OR flight_seats.locked_until < ?)
-			) AS available_seats
-		`, available, now).
+            flights.*,
+            (
+                SELECT COUNT(*)
+                FROM flight_seats
+                WHERE flight_seats.flight_id = flights.id
+                AND flight_seats.is_available = ?
+                AND (flight_seats.locked_until IS NULL OR flight_seats.locked_until < ?)
+            ) AS available_seats
+        `, available, now).
 		Preload("Airline").
 		Preload("Origin").
 		Preload("Destination").
@@ -200,7 +225,6 @@ func (r *flightRepository) Delete(ctx context.Context, tx *gorm.DB, id uint) err
 
 func (r *flightRepository) GetFlightWithClasses(ctx context.Context, tx *gorm.DB, id uint) (*models.Flight, error) {
 	var flight models.Flight
-
 	err := tx.WithContext(ctx).
 		Preload("FlightClasses").
 		First(&flight, id).Error
@@ -208,13 +232,11 @@ func (r *flightRepository) GetFlightWithClasses(ctx context.Context, tx *gorm.DB
 	if err != nil {
 		return nil, err
 	}
-
 	return &flight, nil
 }
 
 func (r *flightRepository) GetFlightWithRelations(ctx context.Context, tx *gorm.DB, id uint) (*models.Flight, error) {
 	var flight models.Flight
-
 	err := tx.WithContext(ctx).
 		Preload("Airline").
 		Preload("Origin").
@@ -226,7 +248,6 @@ func (r *flightRepository) GetFlightWithRelations(ctx context.Context, tx *gorm.
 	if err != nil {
 		return nil, err
 	}
-
 	return &flight, nil
 }
 
@@ -246,13 +267,11 @@ func (r *flightRepository) CreateClass(ctx context.Context, tx *gorm.DB, class *
 }
 
 func (r *flightRepository) GetOrCreateSeats(ctx context.Context, tx *gorm.DB, codes []string) ([]models.Seat, error) {
-	// Build seat models
 	seatModels := make([]models.Seat, len(codes))
 	for i, code := range codes {
 		seatModels[i] = models.Seat{SeatCode: code}
 	}
 
-	// Upsert: insert if not exists, do nothing on conflict
 	if err := tx.WithContext(ctx).
 		Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "seat_code"}},
@@ -262,18 +281,15 @@ func (r *flightRepository) GetOrCreateSeats(ctx context.Context, tx *gorm.DB, co
 		return nil, err
 	}
 
-	// Fetch all seats by codes to get their IDs (including pre-existing ones)
 	var seats []models.Seat
 	if err := tx.WithContext(ctx).Where("seat_code IN ?", codes).Find(&seats).Error; err != nil {
 		return nil, err
 	}
-
 	return seats, nil
 }
 
 func (r *flightRepository) GetAvailableSeats(ctx context.Context, flightID uint, classType string) ([]models.FlightSeat, error) {
 	var seats []models.FlightSeat
-
 	query := r.db.WithContext(ctx).
 		Preload("Seat").
 		Where("flight_id = ? AND is_available = ?", flightID, true).
@@ -297,7 +313,6 @@ func (r *flightRepository) GetFlightSeatsByIDs(ctx context.Context, tx *gorm.DB,
 	return seats, err
 }
 
-// GetFlightSeatsByCodes fetches specific pivot rows by seat codes with pessimistic locking (FOR UPDATE).
 func (r *flightRepository) GetFlightSeatsByCodes(ctx context.Context, tx *gorm.DB, flightID uint, codes []string) ([]models.FlightSeat, error) {
 	var seats []models.FlightSeat
 	err := tx.WithContext(ctx).

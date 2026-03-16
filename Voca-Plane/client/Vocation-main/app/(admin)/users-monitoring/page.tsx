@@ -4,8 +4,12 @@ import { Button } from '@/components/ui/button'
 import { ChevronRight, PlusCircle, Users } from 'lucide-react'
 import Link from 'next/link'
 import { Separator } from '@/components/ui/separator'
+import { info } from 'console'
+import { getInformation } from '@/lib/api/MonitorApi'
 
-function UsersMonitoringPage() {
+const userStats = await getInformation();
+
+async function UsersMonitoringPage() {
   return (
     <div className="flex-1 space-y-8 pt-2">
       <div className="flex flex-col space-y-2">
@@ -40,7 +44,7 @@ function UsersMonitoringPage() {
             <h3 className="text-sm font-medium">Total Users</h3>
             <Users className="h-4 w-4 text-muted-foreground" />
           </div>
-          <div className="text-2xl font-bold">4</div> {/* Sesuai total di JSON Meta  */}
+          <div className="text-2xl font-bold">{userStats?.total_users || 0}</div> {/* Sesuai total di JSON Meta  */}
           <p className="text-xs text-muted-foreground">Active accounts in database</p>
         </div>
       </div>

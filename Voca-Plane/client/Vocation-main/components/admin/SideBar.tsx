@@ -53,14 +53,14 @@ const menuGroups = [
     label: "Sales & Marketing",
     items: [
       { title: "Transactions", url: "/transactions", icon: ReceiptText }, // [cite: 77]
-      { title: "Promo Codes", url: "/promos", icon: TicketPercent }, // [cite: 82]
+      // { title: "Promo Codes", url: "/promos", icon: TicketPercent }, // [cite: 82]
     ],
   },
   {
     label: "User Management",
     items: [
       { title: "User Access", url: "/users-monitoring", icon: UserCog }, // [cite: 4]
-      { title: "Admin Tools", url: "/admin-tool", icon: Terminal }, // Untuk POST Seed & GET Test dari gambar
+      // { title: "Admin Tools", url: "/admin-tool", icon: Terminal }, // Untuk POST Seed & GET Test dari gambar
     ],
   },
   {
