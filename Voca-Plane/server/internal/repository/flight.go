@@ -38,7 +38,7 @@ func (r *flightRepository) Search(ctx context.Context, origin, destination, date
 		Preload("Destination").
 		Preload("FlightClasses").
 		Preload("FlightSeats.Seat").
-		Where("origin.code = ? AND dest.code = ?", origin, destination).
+		Where("origin.name LIKE %?% AND dest.name LIKE ?", "%"+origin+"%", "%"+destination+"%").
 		Where("flights.departure_time BETWEEN ? AND ?", startOfDay, endOfDay)
 	
 	if classType != "" {
