@@ -82,7 +82,6 @@ export function AdminSearch() {
             <CommandGroup heading="Flight Operations">
               <CommandItem onSelect={() => navigate("flights")}>
                 <PlusIcon />
-                <span>Flight Master</span>
               </CommandItem>
 
               <CommandItem onSelect={() => navigate("airlines")}>

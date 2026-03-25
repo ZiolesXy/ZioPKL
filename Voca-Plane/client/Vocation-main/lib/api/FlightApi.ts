@@ -1,8 +1,20 @@
 import axiosInstance from "../axios";
 import { ApiResponse, Flight } from "@/lib/type/flight";
 import { getAuthHeaders } from "../getAuth";
-export const getFlights = async (page: number = 1, limit: number = 10) => {
-  const response = await axiosInstance.get(`/flights?page=${page}&limit=${limit}`);
+export const getFlights = async (page: number = 1, limit: number = 10, filters: any = {}) => {
+  const { origin, destination, ...rest } = filters;
+  
+  // Backend requires BOTH origin and destination for /flight/search
+  const isSearch = origin && destination;
+  const endpoint = isSearch ? "/flight/search" : "/flights";
+  
+  const queryParams = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+    ...filters
+  });
+
+  const response = await axiosInstance.get(`${endpoint}?${queryParams.toString()}`);
   return response.data; // Mengembalikan { success, data, meta }
 };
 export const getTickets = getFlights

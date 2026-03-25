@@ -77,7 +77,7 @@ export function TransactionTableData() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {transactions.length > 0 ? (
+            {transactions && transactions.length > 0 ? (
               transactions.map((tx) => (
                 <TableRow key={tx.id} className="group hover:bg-muted/30 transition-colors">
                   <TableCell className="font-mono text-xs text-muted-foreground">
@@ -100,45 +100,58 @@ export function TransactionTableData() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex flex-col">
-                      <span className="font-medium text-sm">{tx.flight.origin.code} → {tx.flight.destination.code}</span>
-                      <span className="text-xs text-muted-foreground">{tx.flight.origin.city}</span>
+                    <div className="flex items-center gap-2">
+                      <div className="flex flex-col">
+                        <span className="font-medium text-sm">{tx.flight.origin.code}</span>
+                        <span className="text-[10px] text-muted-foreground">{tx.flight.origin.city}</span>
+                      </div>
+                      <Plane className="size-3 text-muted-foreground/30 rotate-45" />
+                      <div className="flex flex-col">
+                        <span className="font-medium text-sm">{tx.flight.destination.code}</span>
+                        <span className="text-[10px] text-muted-foreground">{tx.flight.destination.city}</span>
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col">
-                      <span className="font-bold text-sm">{tx.transactions_passangers.length} Penumpang</span>
+                      <span className="font-bold text-sm text-slate-700 dark:text-slate-300">
+                        {tx.transactions_passangers?.length || 0} Penumpang
+                      </span>
                       <span className="text-[10px] text-muted-foreground">Detail dipesan</span>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col">
-                      <span className="font-bold text-sm text-primary">
+                      <span className="font-black text-sm text-primary">
                         {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(tx.total_price)}
                       </span>
-                      {tx.discount > 0 && <span className="text-[10px] text-destructive">Hemat Rp {tx.discount.toLocaleString()}</span>}
+                      {tx.discount > 0 && <span className="text-[10px] font-bold text-destructive/80 italic">Hemat Rp {tx.discount.toLocaleString()}</span>}
                     </div>
                   </TableCell>
                   <TableCell>
                     <Badge 
                       variant={tx.payment_status === "PAID" ? "default" : "destructive"}
-                      className={tx.payment_status === "PAID" ? "bg-green-500 hover:bg-green-600" : ""}
+                      className={tx.payment_status === "PAID" ? "bg-emerald-500 hover:bg-emerald-600 shadow-sm border-none" : "shadow-sm border-none"}
                     >
                       {tx.payment_status}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="outline" size="sm" className="h-8">Detail</Button>
+                    <Button variant="outline" size="sm" className="h-8 font-bold border-slate-200 dark:border-slate-800 hover:bg-slate-50">Detail</Button>
                   </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={4} className="h-64 text-center">
-                  <div className="flex flex-col items-center justify-center text-muted-foreground">
-                    <Plane className="h-12 w-12 opacity-20 mb-4" />
-                    <p className="text-lg font-medium">Belum ada Transaksi</p>
-                    <p className="text-sm">Transaksi akan muncul setelah user melakukan transaksi.</p>
+                <TableCell colSpan={7} className="h-96 text-center">
+                  <div className="flex flex-col items-center justify-center space-y-4 animate-in fade-in duration-700">
+                    <div className="size-20 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center border border-slate-100 dark:border-slate-800 shadow-inner">
+                      <Plane className="h-10 w-10 text-slate-200 dark:text-slate-700 -rotate-45" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Belum ada Transaksi</p>
+                      <p className="text-sm text-slate-500 max-w-[280px] mx-auto font-medium">Transaksi akan muncul secara otomatis setelah pelanggan melakukan reservasi tiket.</p>
+                    </div>
                   </div>
                 </TableCell>
               </TableRow>

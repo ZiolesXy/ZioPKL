@@ -3,7 +3,7 @@ package handler
 import (
 	"net/http"
 	"strconv"
-	"time"
+	// "time"
 	"voca-plane/internal/service"
 	"voca-plane/pkg/response"
 
@@ -25,17 +25,17 @@ func (h *FlightHandler) Search(c *gin.Context) {
 	classType := c.Query("class_type")
 
 	// VALIDASI QUERY
-	if origin == "" || destination == "" || date == "" {
+	if origin == "" || destination == "" {
 		response.Error(c, http.StatusBadRequest, "origin, destination, and date are required")
 		return
 	}
 
 	// VALIDASI FORMAT DATE
-	_, err := time.Parse("2006-01-02", date)
-	if err != nil {
-		response.Error(c, http.StatusBadRequest, "invalid date format (YYYY-MM-DD)")
-		return
-	}
+	// _, err := time.Parse("2006-01-02", date)
+	// if err != nil {
+	// 	response.Error(c, http.StatusBadRequest, "invalid date format (YYYY-MM-DD)")
+	// 	return
+	// }
 
 	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
 	if err != nil || page < 1 {

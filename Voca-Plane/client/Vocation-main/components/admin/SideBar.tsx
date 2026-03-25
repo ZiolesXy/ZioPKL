@@ -44,7 +44,7 @@ const menuGroups = [
   {
     label: "Flight Operations",
     items: [
-      { title: "Flights Master", url: "/flights/manage", icon: PlaneTakeoff }, // Kelola flight_classes & seats [cite: 32, 52]
+      // { title: "Flights Master", url: "/flights/manage", icon: PlaneTakeoff }, // Kelola flight_classes & seats [cite: 32, 52]
       { title: "Airlines", url: "/airlines", icon: Building2 }, // [cite: 9]
       { title: "Airports", url: "/airports", icon: MapPin }, // [cite: 11]
     ],

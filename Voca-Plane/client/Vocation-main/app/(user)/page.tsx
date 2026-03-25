@@ -43,21 +43,40 @@ async function SearchPage() {
               High-tier service for world-class travelers.
             </p>
             
-            {/* Integrated Search Bar - Optimized */}
-            <div className="w-full max-w-3xl mx-auto group">
-              <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl p-3 rounded-[3rem] shadow-xl border border-white/40 dark:border-white/5 flex flex-col md:flex-row gap-3 transition-all">
-                <div className="flex-1 flex items-center px-8 gap-4">
-                  <Search className="size-6 text-primary/60" />
-                  <input 
-                    type="text" 
-                    placeholder="Search routes or destinations..." 
-                    className="w-full h-16 bg-transparent border-none focus:ring-0 text-slate-900 dark:text-white font-bold text-lg placeholder:text-slate-300 dark:placeholder:text-slate-700"
-                  />
+            {/* Integrated Search Bar - Optimized & Functional */}
+            <div className="w-full max-w-4xl mx-auto group">
+              <form action="/flight" method="GET" className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl p-3 rounded-[3rem] shadow-xl border border-white/40 dark:border-white/5 flex flex-col md:flex-row gap-3 transition-all">
+                <div className="flex-1 flex items-center px-6 gap-3">
+                  <div className="flex flex-col items-start min-w-[120px]">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-primary/60 ml-3 mb-0.5">Origin</span>
+                    <input 
+                      type="text" 
+                      name="origin"
+                      placeholder="Jakarta?" 
+                      required
+                      className="w-full h-10 bg-transparent border-none focus:ring-0 text-slate-900 dark:text-white font-bold text-lg placeholder:text-slate-300 dark:placeholder:text-slate-700 p-3"
+                    />
+                  </div>
+                  
+                  <div className="h-8 w-px bg-slate-200 dark:bg-slate-700 hidden md:block" />
+                  
+                  <div className="flex flex-col items-start min-w-[120px]">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-primary/60 ml-3 mb-0.5">Destination</span>
+                    <input 
+                      type="text" 
+                      name="destination"
+                      placeholder="Bali?" 
+                      required
+                      className="w-full h-10 bg-transparent border-none focus:ring-0 text-slate-900 dark:text-white font-bold text-lg placeholder:text-slate-300 dark:placeholder:text-slate-700 p-3"
+                    />
+                  </div>
                 </div>
-                <button className="h-16 px-12 bg-primary text-white font-black text-lg rounded-[2.5rem] shadow-lg shadow-primary/20 hover:scale-[1.01] active:scale-95 transition-transform duration-200">
+                
+                <button type="submit" className="h-16 px-12 bg-primary text-white font-black text-lg rounded-[2.5rem] shadow-lg shadow-primary/20 hover:scale-[1.01] active:scale-95 transition-transform duration-200 flex items-center justify-center gap-2">
+                  <Search className="size-5" />
                   Book Now
                 </button>
-              </div>
+              </form>
             </div>
           </div>
         </div>

@@ -22,13 +22,13 @@ func (r *flightRepository) Search(ctx context.Context, origin, destination, date
 	var flights []models.Flight
 	var total int64
 
-	layout := "2006-01-02"
-	parseDate, err := time.Parse(layout, date)
-	if err != nil {
-		return nil, 0, err
-	}
-	startOfDay := time.Date(parseDate.Year(), parseDate.Month(), parseDate.Day(), 0, 0, 0, 0, time.UTC)
-	endOfDay := startOfDay.Add(24*time.Hour - time.Second)
+	// layout := "2006-01-02"
+	// parseDate, err := time.Parse(layout, date)
+	// if err != nil {
+	// 	return nil, 0, err
+	// }
+	// startOfDay := time.Date(parseDate.Year(), parseDate.Month(), parseDate.Day(), 0, 0, 0, 0, time.UTC)
+	// endOfDay := startOfDay.Add(24*time.Hour - time.Second)
 
 	query := r.db.WithContext(ctx).Model(&models.Flight{}).
 		Joins("JOIN airports AS origin ON flights.origin_id = origin.id").
@@ -39,8 +39,8 @@ func (r *flightRepository) Search(ctx context.Context, origin, destination, date
 		Preload("FlightClasses").
 		Preload("FlightSeats.Seat").
 		// Perbaikan: Menghapus % di dalam string query agar binding parameter benar
-		Where("origin.name LIKE ? AND dest.name LIKE ?", "%"+origin+"%", "%"+destination+"%").
-		Where("flights.departure_time BETWEEN ? AND ?", startOfDay, endOfDay)
+		Where("origin.name LIKE ? AND dest.name LIKE ?", "%"+origin+"%", "%"+destination+"%")
+		// Where("flights.departure_time BETWEEN ? AND ?", startOfDay, endOfDay)
 
 	if classType != "" {
 		query = query.Joins("JOIN flight_classes ON flight_classes.flight_id = flights.id").
@@ -49,7 +49,7 @@ func (r *flightRepository) Search(ctx context.Context, origin, destination, date
 
 	query.Session(&gorm.Session{}).Count(&total)
 	offset := (page - 1) * limit
-	err = query.Offset(offset).Limit(limit).Find(&flights).Error
+	err := query.Offset(offset).Limit(limit).Find(&flights).Error
 	return flights, total, err
 }
 
