@@ -63,12 +63,12 @@ const menuGroups = [
       // { title: "Admin Tools", url: "/admin-tool", icon: Terminal }, // Untuk POST Seed & GET Test dari gambar
     ],
   },
-  {
-    label: "System",
-    items: [
-      { title: "Settings", url: "/settings", icon: Settings },
-    ],
-  },
+  // {
+  //   label: "System",
+  //   items: [
+  //     { title: "Settings", url: "/settings", icon: Settings },
+  //   ],
+  // },
 ]
 
 export function AppSidebar() {
