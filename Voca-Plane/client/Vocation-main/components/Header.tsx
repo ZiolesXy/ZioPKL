@@ -38,8 +38,8 @@ export function Header() {
             Home
             <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover/link:w-full" />
           </Link>
-          <Link href="/promos" className="text-sm font-bold text-slate-600 hover:text-primary dark:text-slate-300 dark:hover:text-primary transition-colors relative group/link">
-            Promos
+          <Link href="/flight" className="text-sm font-bold text-slate-600 hover:text-primary dark:text-slate-300 dark:hover:text-primary transition-colors relative group/link">
+            Flights
             <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover/link:w-full" />
           </Link>
           <Link href="/my-bookings" className="text-sm font-bold text-slate-600 hover:text-primary dark:text-slate-300 dark:hover:text-primary transition-colors relative group/link">

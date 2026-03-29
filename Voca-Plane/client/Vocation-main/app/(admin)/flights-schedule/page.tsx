@@ -83,11 +83,11 @@ export default function FlightSchedulePage() {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="all">
-            <TabsList>
-              <TabsTrigger value="all">All Flights</TabsTrigger>
-              <TabsTrigger value="active">Active</TabsTrigger>
-              <TabsTrigger value="archived">Archived (Soft Deleted)</TabsTrigger>
-            </TabsList>
+            {/* <TabsList> */}
+              {/* <TabsTrigger value="all">All Flights</TabsTrigger> */}
+              {/* <TabsTrigger value="active">Active</TabsTrigger> */}
+              {/* <TabsTrigger value="archived">Archived (Soft Deleted)</TabsTrigger> */}
+            {/* </TabsList> */}
             <TabsContent value="all">
               <FlightsTableData refreshKey={refreshKey} />
             </TabsContent>
@@ -96,4 +96,4 @@ export default function FlightSchedulePage() {
       </Card>
     </div>
   )
-}
+}
