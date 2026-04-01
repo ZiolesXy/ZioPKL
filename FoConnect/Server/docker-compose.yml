@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    container_name: chatapp_backend
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - .:/app
+    networks:
+      - chatnet
+
+  db:
+    image: postgres:15-alpine
+    container_name: chatapp_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg/var/lib/postgresql/data
+    networks:
+      - chatnet
+
+  redis:
+    image: redis:alpine
+    container_name: chatapp_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis/data
+    networks:
+      - chatnet
+
+networks:
+  chatnet:
+    driver: bridge
+
+volumes:
+  pg
+  redis
