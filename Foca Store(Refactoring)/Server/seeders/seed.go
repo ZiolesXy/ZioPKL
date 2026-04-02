@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
-	"voca-store/helper"
-	"voca-store/models"
+	"voca-store/internal/helper"
+	"voca-store/internal/domain/models"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"

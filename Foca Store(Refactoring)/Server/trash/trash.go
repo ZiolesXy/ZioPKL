@@ -3,9 +3,9 @@ package trash
 // import (
 // 	"errors"
 // 	"net/http"
-// 	"voca-store/models"
-// 	"voca-store/request"
-// 	"voca-store/response"
+// 	"voca-store/internal/domain/models"
+// 	"voca-store/internal/domain/dto/request"
+// 	"voca-store/internal/domain/dto/response"
 
 // 	"github.com/gin-gonic/gin"
 // 	"gorm.io/gorm"

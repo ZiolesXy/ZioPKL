@@ -1,7 +1,7 @@
 package seeders
 
 import (
-	"voca-store/models"
+	"voca-store/internal/domain/models"
 
 	"gorm.io/gorm"
 )

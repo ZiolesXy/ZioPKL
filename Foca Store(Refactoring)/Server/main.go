@@ -7,11 +7,27 @@ import (
 	"strings"
 	"time"
 
-	"voca-store/database"
-	"voca-store/handlers"
-	"voca-store/helper"
-	"voca-store/middleware"
+	"voca-store/internal/database"
+	"voca-store/internal/helper"
+	"voca-store/internal/middleware"
 	"voca-store/seeders"
+
+	// New Repositories
+	"voca-store/internal/repository"
+
+	// New Services
+	"voca-store/internal/service"
+
+	// New Handlers
+	"voca-store/internal/handler/address"
+	"voca-store/internal/handler/auth"
+	"voca-store/internal/handler/cart"
+	"voca-store/internal/handler/category"
+	"voca-store/internal/handler/checkout"
+	"voca-store/internal/handler/coupon"
+	"voca-store/internal/handler/product"
+	"voca-store/internal/handler/profile"
+	"voca-store/internal/handler/system"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -19,32 +35,64 @@ import (
 )
 
 func main() {
-	// Load environment variables
+	// 1. Load environment variables
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found, using environment variables")
 	}
 
-	// Initialize Cloudinary
-	log.Println("starting cloudinary initialiized")
+	// 2. Initialize Cloudinary
 	if err := helper.InitCloudinary(); err != nil {
 		log.Println("Warning: Cloudinary not initialized:", err)
 	} else {
 		log.Println("Cloudinary initialized successfully")
 	}
 
-	// Initialize database
+	// 3. Initialize database
 	db := database.InitDB()
 	rdb := database.InitRedis()
 
+	// 4. Initial Migration
 	if err := seeders.MigrateAll(db); err != nil {
-		panic("failed migrate")
+		panic("failed migrate: " + err.Error())
 	}
 
-	// Setup Gin router
+	// 5. Initialize Repositories
+	categoryRepo := repository.NewCategoryRepository(db)
+	productRepo := repository.NewProductRepository(db)
+	userRepo := repository.NewUserRepository(db)
+	authRepo := repository.NewAuthRepository(rdb)
+	cartRepo := repository.NewCartRepository(db)
+	checkoutRepo := repository.NewCheckoutRepository(db)
+	couponRepo := repository.NewCouponRepository(db)
+	addressRepo := repository.NewAddressRepository(db)
+
+	// 6. Initialize Services
+	categoryService := service.NewCategoryService(categoryRepo)
+	productService := service.NewProductService(productRepo, categoryRepo)
+	authService := service.NewAuthService(userRepo, authRepo)
+	cartService := service.NewCartService(cartRepo, productRepo)
+	checkoutService := service.NewCheckoutService(checkoutRepo, userRepo)
+	couponService := service.NewCouponService(couponRepo)
+	addressService := service.NewAddressService(addressRepo)
+	systemService := service.NewSystemService(db, rdb)
+
+	// 7. Initialize Handlers
+	categoryHandler := category.NewCategoryHandler(categoryService)
+	productHandler := product.NewProductHandler(productService)
+	authHandler := auth.NewAuthHandler(authService)
+	profileHandler := profile.NewProfileHandler(authService)
+	cartHandler := cart.NewCartHandler(cartService)
+	checkoutHandler := checkout.NewCheckoutHandler(checkoutService)
+	midtransHandler := checkout.NewMidtransHandler(checkoutService)
+	couponHandler := coupon.NewCouponHandler(couponService)
+	addressHandler := address.NewAddressHandler(addressService)
+	systemHandler := system.NewSystemHandler(systemService)
+
+	// 8. Setup Gin router
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
 
-	//cors set
+	// CORS configuration
 	originEnv := os.Getenv("ALLOW_ORIGINS")
 	allowedOrigins := []string{"http://localhost:3000"}
 	if originEnv != "" {
@@ -58,96 +106,108 @@ func main() {
 		MaxAge:           12 * time.Hour,
 	}))
 
+	// ==========================================
+	// ROUTES
+	// ==========================================
+
 	// Public routes
-	authHandler := handlers.NewAuthHandler(db)
-	r.GET("/", handlers.GetAllProducts(db))
-	r.GET("/password", handlers.GetNewSecret)
+	r.GET("/", productHandler.GetAllProducts)
+	r.GET("/password", systemHandler.GetNewSecret)
 	r.POST("/register", authHandler.Register)
 	r.POST("/login", authHandler.Login)
 	r.POST("/forgot-password", authHandler.ForgotPassword)
 	r.POST("/verify-otp", authHandler.VerifyOTP)
 	r.POST("/refresh", authHandler.RefreshToken)
-	r.GET("/category/:slug", handlers.GetCategoryBySlug(db))
-	r.GET("/category", handlers.GetAllCategory(db))
-	r.GET("/product/:slug", handlers.GetProductBySlug(db))
-	r.GET("/products", handlers.GetAllProducts(db))
-	r.GET("/coupons", handlers.GetCoupons(db))
-	r.POST("/midtrans/webhook", handlers.MidtransWebhook(db))
+	r.GET("/category/:slug", categoryHandler.GetCategoryBySlug)
+	r.GET("/category", categoryHandler.GetAllCategory)
+	r.GET("/product/:slug", productHandler.GetProductBySlug)
+	r.GET("/products", productHandler.GetAllProducts)
+	r.GET("/coupons", couponHandler.GetCoupons)
+	r.POST("/midtrans/webhook", midtransHandler.MidtransWebhook)
 
 	// Protected routes
-	protected := r.Group("/api")
-	protected.Use(middleware.JWTAuth(db))
+	api := r.Group("/api")
+	api.Use(middleware.JWTAuth(db))
 	{
-		// User routes
-		protected.GET("/profile", handlers.GetProfile(db))
-		protected.PUT("/profile", handlers.UpdateProfile(db))
-		protected.PUT("/change-password", handlers.ChangePassword(db))
-		protected.GET("/cart", handlers.ViewCart(db))
-		protected.POST("/cart/items", handlers.AddToCart(db))
-		protected.DELETE("/cart/items/:id", handlers.RemoveCartItem(db))
-		protected.DELETE("/cart/items", handlers.RemoveCartItemMany(db))
-		protected.DELETE("/cart/items/all", handlers.ClearCart(db))
-		protected.POST("/checkout", handlers.Checkout(db))
-		protected.GET("/checkout/me", handlers.GetMyCheckout(db))
-		protected.GET("/checkout/:uid", handlers.GetCheckoutByUID(db))
-		protected.DELETE("/checkout/:uid", handlers.DeleteMyCheckout(db))
-		protected.POST("/logout", authHandler.Logout)
+		// Profile
+		api.GET("/profile", profileHandler.GetProfile)
+		api.PUT("/profile", profileHandler.UpdateProfile)
+		api.PUT("/change-password", profileHandler.ChangePassword)
 
-		// Address routes
-		protected.POST("/addresses", handlers.CreateAddress(db))
-		protected.GET("/addresses", handlers.GetMyAddresses(db))
-		protected.GET("/addresses/:uid", handlers.GetAddressByUID(db))
-		protected.PUT("/addresses/:uid", handlers.UpdateAddress(db))
-		protected.DELETE("/addresses/:uid", handlers.DeleteAddress(db))
+		// Cart
+		api.GET("/cart", cartHandler.ViewCart)
+		api.POST("/cart/items", cartHandler.AddToCart)
+		api.DELETE("/cart/items/:id", cartHandler.RemoveCartItem)
+		api.DELETE("/cart/items", cartHandler.RemoveCartItemMany)
+		api.DELETE("/cart/items/all", cartHandler.ClearCart)
 
-		// Coupon user routes
-		protected.POST("/coupons/:id/claim", handlers.ClaimCoupon(db))
-		protected.GET("/coupons/me", handlers.GetMyCoupons(db))
-		protected.DELETE("/coupons/:id/remove", handlers.RemoveCoupon(db))
+		// Checkout
+		api.POST("/checkout", checkoutHandler.CreateCheckout)
+		api.GET("/checkout/me", checkoutHandler.GetMyCheckouts)
+		api.GET("/checkout/:uid", checkoutHandler.GetCheckoutByUID)
+		api.DELETE("/checkout/:uid", checkoutHandler.DeleteCheckout)
+
+		// Address
+		api.POST("/addresses", addressHandler.CreateAddress)
+		api.GET("/addresses", addressHandler.GetMyAddresses)
+		api.GET("/addresses/:uid", addressHandler.GetAddressByUID)
+		api.PUT("/addresses/:uid", addressHandler.UpdateAddress)
+		api.DELETE("/addresses/:uid", addressHandler.DeleteAddress)
+
+		// Coupon claims
+		api.POST("/coupons/:id/claim", couponHandler.ClaimCoupon)
+		api.GET("/coupons/me", couponHandler.GetMyCoupons)
+		api.DELETE("/coupons/:id/remove", couponHandler.RemoveCoupon)
+
+		api.POST("/logout", authHandler.Logout)
 
 		// Admin routes
-		admin := protected.Group("/admin")
+		admin := api.Group("/admin")
 		admin.Use(middleware.AdminOnly())
 		{
-			admin.POST("/category", handlers.CreateCategory(db))
-			admin.PUT("/category/:id", handlers.UpdateCategory(db))
-			admin.DELETE("/category/:id", handlers.DeleteCategory(db))
-			admin.POST("/products", handlers.CreateProduct(db))
-			admin.PUT("/products/:id", handlers.UpdateProduct(db))
-			admin.DELETE("/products/:id", handlers.DeleteProduct(db))
-			admin.DELETE("/products", handlers.DeleteAllProducts(db))
-			admin.DELETE("/products/assets", handlers.DeleteAllProductImages(db))
-			admin.POST("/coupons", handlers.CreateCoupon(db))
-			admin.PUT("/coupon/:id", handlers.UpdateCoupon(db))
-			admin.DELETE("/coupon/:id", handlers.DeleteCoupon(db))
-			admin.GET("/checkout", handlers.GetCheckout(db))
-			admin.PATCH("/checkout/:id/approve", handlers.ApproveCheckout(db))
-			admin.PATCH("/checkout/:id/reject", handlers.RejectCheckout(db))
+			admin.POST("/category", categoryHandler.CreateCategory)
+			admin.PUT("/category/:id", categoryHandler.UpdateCategory)
+			admin.DELETE("/category/:id", categoryHandler.DeleteCategory)
+
+			admin.POST("/products", productHandler.CreateProduct)
+			admin.PUT("/products/:id", productHandler.UpdateProduct)
+			admin.DELETE("/products/:id", productHandler.DeleteProduct)
+			admin.DELETE("/products", productHandler.DeleteAllProducts)
+			admin.DELETE("/products/assets", productHandler.DeleteAllProductImages)
+
+			admin.POST("/coupons", couponHandler.CreateCoupon)
+			admin.PUT("/coupon/:id", couponHandler.UpdateCoupon)
+			admin.DELETE("/coupon/:id", couponHandler.DeleteCoupon)
+
+			admin.GET("/checkout", checkoutHandler.GetCheckoutList)
+			admin.PATCH("/checkout/:id/approve", checkoutHandler.ApproveCheckout)
+			admin.PATCH("/checkout/:id/reject", checkoutHandler.RejectCheckout)
 		}
 	}
 
-	system := r.Group("/system")
-	system.Use(middleware.SystemAuth())
+	// System & Maintenance
+	sys := r.Group("/system")
+	sys.Use(middleware.SystemAuth())
 	{
-		system.POST("/reset", handlers.ResetDatabaseHandler(db, rdb))
-		system.POST("/reset/product", handlers.ResetDatabaseWithProductsHandler(db, rdb))
-		system.POST("/reset/catalog", handlers.ResetDatabasePreserveProductsAndCategoriesHandler(db, rdb))
-		system.POST("/migrate", handlers.MigrateHandler(db))
-		system.DELETE("/reset/assets", handlers.DeleteAllCloudinaryAssets())
+		sys.POST("/reset", systemHandler.ResetDatabase)
+		sys.POST("/reset/product", systemHandler.ResetDatabaseWithProducts)
+		sys.POST("/reset/catalog", systemHandler.ResetDatabasePreserveCatalog)
+		sys.POST("/migrate", systemHandler.Migrate)
+		sys.DELETE("/reset/assets", systemHandler.DeleteAllCloudinaryAssets)
+		sys.POST("/redis", systemHandler.ResetRedis)
 
-		system.POST("/redis", handlers.ResetRedis(rdb))
-		// Seeder endpoint
-		seed := system.Group("/seed")
+		// Seeder endpoints
+		seed := sys.Group("/seed")
 		{
-			seed.GET("/assets", handlers.SeedProductsFromAssetsHandler(db))
-			seed.GET("/roles", handlers.SeedRoleHandler(db))
-			seed.GET("/admin", handlers.SeedAdminHandler(db))
-			seed.GET("/users", handlers.SeedUsersHandler(db))
-			seed.GET("/products", handlers.SeedProductsHandler(db))
-			seed.GET("/coupons", handlers.SeedCouponHandler(db))
-			seed.PUT("/sync", handlers.SyncAssetProductsHandler(db))
-			seed.GET("/all", handlers.SeedAllHandler(db))
-			seed.GET("/all-product", handlers.SeedAllWithProductnonAssetsHandler(db))
+			seed.GET("/assets", systemHandler.SeedProductsFromAssets)
+			seed.GET("/roles", systemHandler.SeedRoles)
+			seed.GET("/admin", systemHandler.SeedAdmin)
+			seed.GET("/users", systemHandler.SeedUsers)
+			seed.GET("/products", systemHandler.SeedProducts)
+			seed.GET("/coupons", systemHandler.SeedCoupons)
+			seed.PUT("/sync", systemHandler.SyncAssetProducts)
+			seed.GET("/all", systemHandler.SeedAll)
+			seed.GET("/all-product", systemHandler.SeedAllWithProducts)
 		}
 	}
 
