@@ -6,7 +6,6 @@ import (
 	"voca-store/internal/domain/repository"
 	"voca-store/internal/domain/dto/request"
 	"voca-store/internal/domain/dto/response"
-	"voca-store/internal/helper"
 )
 
 type AddressService interface {
@@ -28,7 +27,7 @@ func NewAddressService(addressRepo repository.AddressRepository) AddressService 
 func (s *addressService) Create(userID uint, req request.CreateAddressRequest) (response.AddressResponse, error) {
 	var finalAddress models.Address
 	err := s.addressRepo.WithTransaction(func(txRepo repository.AddressRepository) error {
-		uid, _ := helper.NewGenerateAddressUID(nil) // Fixed if helper doesn't need DB
+		uid, _ := txRepo.GenerateUID()
 
 		address := models.Address{
 			UID:           uid,

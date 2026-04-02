@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"math/big"
 	"time"
-	"voca-store/internal/domain/models"
-	"voca-store/internal/domain/repository"
 	"voca-store/internal/domain/dto/request"
 	"voca-store/internal/domain/dto/response"
+	"voca-store/internal/domain/models"
+	"voca-store/internal/domain/repository"
 	"voca-store/internal/helper"
 )
 
@@ -22,7 +22,7 @@ type AuthService interface {
 	ForgotPassword(req request.ForgotPasswordRequest) error
 	VerifyOTP(req request.VerifyOTPRequest) error
 	GetProfile(userID uint) (response.UserProfileResponse, error)
-	UpdateProfile(userID uint, req request.UpdateProfileRequest) (response.UserResponse, error)
+	UpdateProfile(userID uint, req request.UpdateProfileRequest, imageURL, imagePublicID string) (response.UserResponse, error)
 }
 
 type authService struct {
@@ -61,7 +61,7 @@ func (s *authService) Register(req request.RegisterRequest) (response.UserRespon
 	// Create cart
 	s.userRepo.CreateCart(&models.Cart{UserID: user.ID})
 
-	return response.BuildUserResponse(user.ID, user.Name, user.Email, "User", user.TelephoneNumber), nil
+	return response.BuildUserResponse(user.ID, user.Name, user.Email, "User", user.TelephoneNumber, user.ProfileImageURL), nil
 }
 
 func (s *authService) Login(req request.LoginRequest) (response.AuthResponse, error) {
@@ -79,7 +79,7 @@ func (s *authService) Login(req request.LoginRequest) (response.AuthResponse, er
 
 	s.authRepo.SetRefreshToken(user.ID, refreshToken, 7*24*time.Hour)
 
-	userResp := response.BuildUserResponse(user.ID, user.Name, user.Email, user.Role.Name, user.TelephoneNumber)
+	userResp := response.BuildUserResponse(user.ID, user.Name, user.Email, user.Role.Name, user.TelephoneNumber, user.ProfileImageURL)
 	return response.BuildAuthResponse(userResp, accessToken, refreshToken), nil
 }
 
@@ -165,7 +165,7 @@ func (s *authService) VerifyOTP(req request.VerifyOTPRequest) error {
 
 	hashed, _ := helper.HashPassword(req.NewPassword)
 	user, _ := s.userRepo.FindByEmail(req.Email)
-	
+
 	err = s.userRepo.Update(&user, map[string]interface{}{"password": hashed})
 	if err == nil {
 		s.authRepo.DeleteOTP(req.Email)
@@ -174,31 +174,31 @@ func (s *authService) VerifyOTP(req request.VerifyOTPRequest) error {
 }
 
 func (s *authService) GetProfile(userID uint) (response.UserProfileResponse, error) {
-    user, err := s.userRepo.FindByID(userID)
-    if err != nil {
-        return response.UserProfileResponse{}, err
-    }
+	user, err := s.userRepo.FindByID(userID)
+	if err != nil {
+		return response.UserProfileResponse{}, err
+	}
 
-    // Convert addresses ke response
-    var addresses []response.AddressResponse
-    for _, addr := range user.Addresses {
-        addresses = append(addresses, response.BuildAddressResponse(addr))
-    }
+	// Convert addresses ke response
+	var addresses []response.AddressResponse
+	for _, addr := range user.Addresses {
+		addresses = append(addresses, response.BuildAddressResponse(addr))
+	}
 
-    return response.BuildUserProfileResponse(
-        user.ID,
-        user.Name,
-        user.Email,
-        user.TelephoneNumber,
-        user.Role.Name,
-        user.ProfileImageURL,
-        addresses,
-        user.CreatedAt,
-        user.UpdatedAt,
-    ), nil
+	return response.BuildUserProfileResponse(
+		user.ID,
+		user.Name,
+		user.Email,
+		user.TelephoneNumber,
+		user.ProfileImageURL,
+		user.Role.Name,
+		addresses,
+		user.CreatedAt,
+		user.UpdatedAt,
+	), nil
 }
 
-func (s *authService) UpdateProfile(userID uint, req request.UpdateProfileRequest) (response.UserResponse, error) {
+func (s *authService) UpdateProfile(userID uint, req request.UpdateProfileRequest, imageURL, imagePublicID string) (response.UserResponse, error) {
 	user, err := s.userRepo.FindByID(userID)
 	if err != nil {
 		return response.UserResponse{}, err
@@ -220,11 +220,23 @@ func (s *authService) UpdateProfile(userID uint, req request.UpdateProfileReques
 		updates["telephone_number"] = *req.TelephoneNumber
 	}
 
+	if imageURL != "" {
+		updates["profile_image_url"] = imageURL
+		updates["profile_image_public_id"] = imagePublicID
+	}
+
+	oldProfileImagePublicID := user.ProfileImagePublicID
+
 	if err := s.userRepo.Update(&user, updates); err != nil {
 		return response.UserResponse{}, err
 	}
 
+	// Delete old image only if new one is uploaded and old one existed
+	if imageURL != "" && oldProfileImagePublicID != "" {
+		helper.DeleteImage(oldProfileImagePublicID)
+	}
+
 	// Reload
 	user, _ = s.userRepo.FindByID(userID)
-	return response.BuildUserResponse(user.ID, user.Name, user.Email, user.Role.Name, user.TelephoneNumber), nil
+	return response.BuildUserResponse(user.ID, user.Name, user.Email, user.Role.Name, user.TelephoneNumber, user.ProfileImageURL), nil
 }

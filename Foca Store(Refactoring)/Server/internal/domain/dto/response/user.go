@@ -14,6 +14,7 @@ type UserResponse struct {
 	Name            string `json:"name"`
 	Email           string `json:"email"`
 	TelephoneNumber string `json:"telephone_number"`
+	ProfileImageURL string `json:"profile_image_url,omitempty"`
 	Role            string `json:"role"`
 }
 
@@ -33,12 +34,13 @@ type UserProfileResponse struct {
 	UpdatedAt       time.Time         `json:"updated_at"`
 }
 
-func BuildUserResponse(id uint, name, email, role, telephoneNumber string) UserResponse {
+func BuildUserResponse(id uint, name, email, role, telephoneNumber, profileImageURL string) UserResponse {
 	return UserResponse{
 		ID:              id,
 		Name:            name,
 		Email:           email,
 		TelephoneNumber: telephoneNumber,
+		ProfileImageURL: profileImageURL,
 		Role:            role,
 	}
 }

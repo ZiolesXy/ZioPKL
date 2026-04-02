@@ -14,4 +14,5 @@ type AddressRepository interface {
 	
 	UnsetPrimary(userID uint) error
 	WithTransaction(fn func(repo AddressRepository) error) error
+	GenerateUID() (string, error)
 }

@@ -1,9 +1,14 @@
 package profile
 
 import (
+	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 	"voca-store/internal/domain/dto/request"
 	"voca-store/internal/domain/dto/response"
+	"voca-store/internal/helper"
 	"voca-store/internal/service"
 
 	"github.com/gin-gonic/gin"
@@ -34,14 +39,60 @@ func (h *ProfileHandler) UpdateProfile(c *gin.Context) {
 	userIDRaw, _ := c.Get("user_id")
 	userID := userIDRaw.(uint)
 
+	contentType := c.GetHeader("Content-Type")
+	isMultipart := strings.HasPrefix(contentType, "multipart/form-data")
+
 	var req request.UpdateProfileRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.ErrorResponse(c, http.StatusBadRequest, "invalid request body")
-		return
+	var imageURL, imagePublicID string
+
+	if isMultipart {
+		name := c.PostForm("name")
+		if name != "" {
+			req.Name = &name
+		}
+
+		email := c.PostForm("email")
+		if email != "" {
+			req.Email = &email
+		}
+
+		telp := c.PostForm("telephone_number")
+		if telp != "" {
+			req.TelephoneNumber = &telp
+		}
+
+		if file, err := c.FormFile("profile_image"); err == nil {
+			tempPath := filepath.Join("tmp", file.Filename)
+			os.MkdirAll("tmp", os.ModePerm)
+			if err := c.SaveUploadedFile(file, tempPath); err != nil {
+				response.ErrorResponse(c, http.StatusInternalServerError, "failed to save uploaded file")
+				return
+			}
+
+			uploadRes, err := helper.UploadFile(tempPath, "profiles")
+			if err != nil {
+				response.ErrorResponse(c, http.StatusInternalServerError, "failed to upload image")
+				return
+			}
+			fmt.Println("UPLOAD RESULT:", uploadRes)
+			os.Remove(tempPath)
+			if uploadRes != nil {
+				imageURL = uploadRes.SecureURL
+				imagePublicID = uploadRes.PublicID
+			}
+		}
+	} else {
+		if err := c.ShouldBindJSON(&req); err != nil {
+			response.ErrorResponse(c, http.StatusBadRequest, "invalid request body")
+			return
+		}
 	}
 
-	profileRes, err := h.authService.UpdateProfile(userID, req)
+	profileRes, err := h.authService.UpdateProfile(userID, req, imageURL, imagePublicID)
 	if err != nil {
+		if imagePublicID != "" {
+			helper.DeleteImage(imagePublicID)
+		}
 		response.ErrorResponse(c, http.StatusConflict, err.Error())
 		return
 	}

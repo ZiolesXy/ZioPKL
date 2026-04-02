@@ -3,6 +3,7 @@ package repository
 import (
 	"voca-store/internal/domain/models"
 	"voca-store/internal/domain/repository"
+	"voca-store/internal/helper"
 
 	"gorm.io/gorm"
 )
@@ -53,4 +54,8 @@ func (r *addressRepository) WithTransaction(fn func(repo repository.AddressRepos
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		return fn(NewAddressRepository(tx))
 	})
+}
+
+func (r *addressRepository) GenerateUID() (string, error) {
+	return helper.NewGenerateAddressUID(r.db)
 }
