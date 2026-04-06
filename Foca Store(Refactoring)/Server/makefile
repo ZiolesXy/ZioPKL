@@ -43,3 +43,5 @@ redis-run:
 	docker start $(CONTAINER_NAME)
 redis-stop:
 	docker stop $(CONTAINER_NAME)
+redis-remove:
+	docker rm $(CONTAINER_NAME)
