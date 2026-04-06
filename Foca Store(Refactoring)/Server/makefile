@@ -36,9 +36,6 @@ clean:
 delete-all:
 	docker system prune -a --volumes
 
-
-CONAINER_NAME=voca_store
-
 # APP
 start:
 	go run cmd/main.go
