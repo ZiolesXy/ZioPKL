@@ -26,10 +26,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"github.com/redis/go-redis/v9"
+	"gorm.io/gorm"
 )
 
 type App struct {
 	Router *gin.Engine
+	DB     *gorm.DB
+    Redis  *redis.Client
 }
 
 func New() *App {
@@ -113,6 +117,7 @@ func (a *App) Run() error {
 	}()
 
 	<-ctx.Done()
+	database.CloseDB()
 	log.Println("Shutting down server...")
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
