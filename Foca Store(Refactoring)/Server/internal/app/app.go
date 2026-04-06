@@ -1,9 +1,14 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 	"voca-store/internal/database"
 	"voca-store/internal/handler/address"
 	"voca-store/internal/handler/auth"
@@ -92,6 +97,31 @@ func (a *App) Run() error {
 		port = "8080"
 	}
 
-	fmt.Printf("Server running on port %s\n", port)
-	return a.Router.Run(":" + port)
+	server := &http.Server{
+		Addr: ":" + port,
+		Handler: a.Router,
+	}
+
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	go func ()  {
+		fmt.Printf("Server running on port %s\n", port)
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Server error: %v", err)
+		}
+	}()
+
+	<-ctx.Done()
+	log.Println("Shutting down server...")
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(shutdownCtx); err != nil {
+		return fmt.Errorf("Server forced to shutdown: %v", err)
+	}
+
+	log.Println("Server exiting")
+	return nil
 }
