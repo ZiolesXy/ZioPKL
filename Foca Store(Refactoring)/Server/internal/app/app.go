@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"voca-store/internal/database"
@@ -91,5 +92,6 @@ func (a *App) Run() error {
 		port = "8080"
 	}
 
+	fmt.Printf("Server running on port %s\n", port)
 	return a.Router.Run(":" + port)
 }

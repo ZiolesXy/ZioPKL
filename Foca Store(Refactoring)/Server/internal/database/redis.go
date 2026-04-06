@@ -28,5 +28,6 @@ func InitRedis() *redis.Client {
 	}
 
 	RDB = rdb
+	log.Println("Redis succesfully connected")
 	return rdb
 }

@@ -41,6 +41,7 @@ func InitDB() *gorm.DB {
 	}
 
 	DB = db
+	log.Println("Database succesfully connected")
 	return db
 }
 
