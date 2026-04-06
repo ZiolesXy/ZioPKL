@@ -35,14 +35,3 @@ clean:
 	docker system prune -f
 delete-all:
 	docker system prune -a --volumes
-
-# Redis
-redis-start:
-	docker run -d --name $(CONTAINER_NAME) -p 6379:6379 redis:7
-redis-run:
-	docker start $(CONTAINER_NAME)
-redis-stop:
-	docker stop $(CONTAINER_NAME)
-redis-remove:
-	docker stop $(CONTAINER_NAME)
-	docker rm $(CONTAINER_NAME)
