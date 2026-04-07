@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
-	"voca-store/internal/helper"
 	"voca-store/internal/domain/models"
+	"voca-store/internal/helper"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -147,6 +147,25 @@ func SeedUsers(db *gorm.DB) error {
 			postalCode  string
 		}
 	}{
+		{
+			name:  "ZiolesXy",
+			email: "eaglegaming3605@gmail.com",
+			pass:  "123456",
+			telp:  "081584012152",
+			addresses: []struct {
+				label       string
+				addressLine string
+				city        string
+				province    string
+				postalCode  string
+			}{
+				{"Kantor Pusat", "Jl. Jend. Sudirman Kav. 52-53", "Jakarta Selatan", "DKI Jakarta", "12190"},
+				{"Gudang Logistik", "Kawasan Industri Bukit Indah Blok C2", "Purwakarta", "Jawa Barat", "41181"},
+				{"Villa", "Jl. Labuan Sait No. 10", "Pecatu", "Bali", "80361"},
+				{"Kost", "Jl. Dipati Ukur No. 45", "Bandung", "Jawa Barat", "40132"},
+				{"Rumah Kebun", "Jl. Raya Trans Sulawesi KM 15", "Maros", "Sulawesi Selatan", "90552"},
+			},
+		},
 		{
 			name:  "Amtir",
 			email: "petir@gmail.com",

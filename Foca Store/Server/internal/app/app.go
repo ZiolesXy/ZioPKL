@@ -14,6 +14,7 @@ import (
 	"voca-store/internal/handler/auth"
 	"voca-store/internal/handler/cart"
 	"voca-store/internal/handler/category"
+	"voca-store/internal/handler/chat"
 	"voca-store/internal/handler/checkout"
 	"voca-store/internal/handler/coupon"
 	"voca-store/internal/handler/product"
@@ -22,6 +23,7 @@ import (
 	"voca-store/internal/helper"
 	"voca-store/internal/repository"
 	"voca-store/internal/service"
+	"voca-store/internal/websocket"
 	"voca-store/seeders"
 
 	"github.com/gin-gonic/gin"
@@ -34,6 +36,7 @@ type App struct {
 	Router *gin.Engine
 	DB     *gorm.DB
     Redis  *redis.Client
+	WsHub *websocket.Hub
 }
 
 func New() *App {
@@ -65,6 +68,8 @@ func New() *App {
 	checkoutRepo := repository.NewCheckoutRepository(db)
 	couponRepo := repository.NewCouponRepository(db)
 	addressRepo := repository.NewAddressRepository(db)
+	chatRepo := repository.NewChatRepository(db)
+	wsHub := websocket.NewHub(chatRepo)
 
 	// Service
 	categoryService := service.NewCategoryService(categoryRepo)
@@ -75,6 +80,7 @@ func New() *App {
 	couponService := service.NewCouponService(couponRepo)
 	addressService := service.NewAddressService(addressRepo)
 	systemService := service.NewSystemService(db, rdb)
+	chatService := service.NewChatService(chatRepo, wsHub)
 
 	// Handler
 	handlers := map[string]interface{}{
@@ -88,14 +94,23 @@ func New() *App {
 		"coupon":   coupon.NewCouponHandler(couponService),
 		"address":  address.NewAddressHandler(addressService),
 		"system":   system.NewSystemHandler(systemService),
+		"chat":	 chat.NewChatHandler(chatService, wsHub),
 	}
 
 	r := SetUpServer()
 	RegisterRoutes(r, handlers, db)
-	return &App{Router: r}
+	return &App{
+		Router: r,
+		DB: db,
+		Redis: rdb,
+		WsHub: wsHub,
+	}
 }
 
 func (a *App) Run() error {
+	ctx := context.Background()
+	go a.WsHub.Run(ctx)
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"

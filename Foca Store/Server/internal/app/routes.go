@@ -5,6 +5,7 @@ import (
 	"voca-store/internal/handler/auth"
 	"voca-store/internal/handler/cart"
 	"voca-store/internal/handler/category"
+	"voca-store/internal/handler/chat"
 	"voca-store/internal/handler/checkout"
 	"voca-store/internal/handler/coupon"
 	"voca-store/internal/handler/product"
@@ -27,9 +28,11 @@ func RegisterRoutes(r *gin.Engine, h map[string]interface{}, db *gorm.DB) {
 	coupon := h["coupon"].(*coupon.CouponHandler)
 	address := h["address"].(*address.AddressHandler)
 	system := h["system"].(*system.SystemHandler)
+	chatHandler := h["chat"].(*chat.ChatHandler)
 
 	// PUBLIC ROUTES
 	r.GET("/", product.GetAllProducts)
+	r.GET("/chat/status", chatHandler.GetActiveSession)
 	r.GET("/password", system.GetNewSecret)
 
 	r.POST("/register", auth.Register)
@@ -82,6 +85,13 @@ func RegisterRoutes(r *gin.Engine, h map[string]interface{}, db *gorm.DB) {
 
 	api.POST("/logout", auth.Logout)
 
+	chats := api.Group("/chat")
+	chats.POST("/requests", chatHandler.CreateChatRequest)
+	chats.GET("/sessions/:session_uid", chatHandler.GetSessionByUID)
+	chats.GET("/sessions/:session_uid/messages", chatHandler.GetChatHistory)
+	chats.POST("/sessions/:session_uid/read", chatHandler.MarkMessagesRead)
+	chats.POST("/sessions/:session_uid/close", chatHandler.CloseSession)
+
 	// ADMIN ROUTES
 	admin := api.Group("/admin")
 	admin.Use(middleware.AdminOnly())
@@ -104,6 +114,9 @@ func RegisterRoutes(r *gin.Engine, h map[string]interface{}, db *gorm.DB) {
 	admin.PATCH("/checkout/:id/approve", checkouts.ApproveCheckout)
 	admin.PATCH("/checkout/:id/reject", checkouts.RejectCheckout)
 
+	admin.GET("/chat/pending", chatHandler.GetPendingChatRequests)
+	admin.POST("/chat/requests/:session_uid/accept", chatHandler.AcceptChatRequest)
+
 	// SYSTEM ROUTES
 	sys := r.Group("/system")
 	sys.Use(middleware.SystemAuth())
@@ -125,4 +138,11 @@ func RegisterRoutes(r *gin.Engine, h map[string]interface{}, db *gorm.DB) {
 	seed.POST("/sync", system.SyncAssetProducts)
 	seed.POST("/all", system.SeedAll)
 	seed.POST("/all-product", system.SeedAllWithProducts)
+
+	// Websocket
+	ws := r.Group("/ws")
+	ws.Use(middleware.WebSocketAuth(db))
+	{
+		ws.GET("/chat/:session_uid", chatHandler.WebSocketHandler)
+	}
 }

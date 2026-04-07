@@ -19,5 +19,7 @@ func MigrateAll(db *gorm.DB) error {
 		&models.Coupon{},
 		&models.UserCoupon{},
 		&models.Address{},
+		&models.ChatSession{},
+		&models.ChatMessage{},
 	)
 }
