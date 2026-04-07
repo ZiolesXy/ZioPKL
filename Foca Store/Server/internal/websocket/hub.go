@@ -13,7 +13,6 @@ type Hub struct {
 	clients    map[string]map[*Client]bool
 	broadcast  chan WSMessage
 	register   chan *Client
-	unregister chan *Client
 	mu         sync.RWMutex
 	repo       repository.ChatRepository
 }
@@ -23,7 +22,6 @@ func NewHub(repo repository.ChatRepository) *Hub {
 		clients:    make(map[string]map[*Client]bool),
 		broadcast:  make(chan WSMessage),
 		register:   make(chan *Client),
-		unregister: make(chan *Client),
 		repo:       repo,
 	}
 }
@@ -35,7 +33,22 @@ func (h *Hub) RegisterClient(client *Client) {
 }
 
 func (h *Hub) UnregisterClient(client *Client) {
-	h.unregister <- client
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	// 1. Remove from session room
+	if clients, ok := h.clients[client.GetSessionUID()]; ok {
+		delete(clients, client)
+		if len(clients) == 0 {
+			delete(h.clients, client.GetSessionUID())
+			log.Printf("Session room closed: %s", client.GetSessionUID())
+		}
+	}
+
+	// 2. Remove from admin broadcast group if applicable
+	if adminClients, ok := h.clients["admin_broadcast"]; ok {
+		delete(adminClients, client)
+	}
 }
 
 func (h *Hub) BroadcastToSession(sessionUID string, message WSMessage) {
@@ -43,21 +56,21 @@ func (h *Hub) BroadcastToSession(sessionUID string, message WSMessage) {
 }
 
 func (h *Hub) NotifyAdminsNewRequest(session models.ChatSession) {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
-
 	notification := NewWSMessage(WSMsgTypeNotification, NotificationPayload{
 		Title: "New Chat Request",
 		Body:  session.User.Name + " wants to chat",
 		Data: map[string]interface{}{
-			"type":         "new_chat_request",
-			"session_uid":  session.UID,
-			"user_id":      session.UserID,
-			"user_name":    session.User.Name,
-			"user_avatar":  session.User.ProfileImageURL,
-			"created_at":   session.CreatedAt,
+			"type":        "new_chat_request",
+			"session_uid": session.UID,
+			"user_id":     session.UserID,
+			"user_name":   session.User.Name,
+			"user_avatar": session.User.ProfileImageURL,
+			"created_at":  session.CreatedAt,
 		},
 	})
+
+	h.mu.RLock()
+	defer h.mu.RUnlock()
 
 	if adminClients, ok := h.clients["admin_broadcast"]; ok {
 		for client := range adminClients {
@@ -65,6 +78,7 @@ func (h *Hub) NotifyAdminsNewRequest(session models.ChatSession) {
 				select {
 				case client.send <- notification:
 				default:
+					log.Printf("Admin %d broadcast buffer full", client.GetUserID())
 				}
 			}
 		}
@@ -129,17 +143,6 @@ func (h *Hub) Run(ctx context.Context) {
 			h.mu.Unlock()
 			log.Printf("Client registered: user %d, session %s", client.GetUserID(), client.GetSessionUID())
 
-		case client := <-h.unregister:
-			h.mu.Lock()
-			if clients, ok := h.clients[client.GetSessionUID()]; ok {
-				delete(clients, client)
-				if len(clients) == 0 {
-					delete(h.clients, client.GetSessionUID())
-					log.Printf("Session room closed: %s", client.GetSessionUID())
-				}
-			}
-			h.mu.Unlock()
-
 		case message := <-h.broadcast:
 			h.handleBroadcast(message)
 		}
@@ -161,8 +164,7 @@ func (h *Hub) handleBroadcast(message WSMessage) {
 				select {
 				case client.send <- message:
 				default:
-					close(client.send)
-					delete(clients, client)
+					log.Printf("Client %d buffer full, dropping message", client.GetUserID())
 				}
 			}
 		}
