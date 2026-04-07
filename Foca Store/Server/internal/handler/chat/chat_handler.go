@@ -79,6 +79,21 @@ func (h *ChatHandler) GetPendingChatRequests(c *gin.Context) {
 	response.SuccessResponse(c, "Pending chat requests retrieved", helper.WrapListIfNeeded(resp))
 }
 
+func (h *ChatHandler) GetAllSessions(c *gin.Context) {
+	sessions, err := h.service.GetAllChatSessions(c.Request.Context())
+	if err != nil {
+		response.ErrorResponse(c, http.StatusInternalServerError, "Failed to fetch chat sessions")
+		return
+	}
+
+	var resp []response.ChatSessionResponse
+	for _, s := range sessions {
+		resp = append(resp, response.ToChatSessionResponse(s))
+	}
+
+	response.SuccessResponse(c, "All chat sessions retrieved", helper.WrapListIfNeeded(resp))
+}
+
 func (h *ChatHandler) GetActiveSession(c *gin.Context) {
 	userID := c.GetUint("user_id")
 	if userID == 0 {

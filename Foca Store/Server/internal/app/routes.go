@@ -115,6 +115,7 @@ func RegisterRoutes(r *gin.Engine, h map[string]interface{}, db *gorm.DB) {
 	admin.PATCH("/checkout/:id/reject", checkouts.RejectCheckout)
 
 	admin.GET("/chat/pending", chatHandler.GetPendingChatRequests)
+	admin.GET("/chat/sessions", chatHandler.GetAllSessions)
 	admin.POST("/chat/requests/:session_uid/accept", chatHandler.AcceptChatRequest)
 
 	// SYSTEM ROUTES

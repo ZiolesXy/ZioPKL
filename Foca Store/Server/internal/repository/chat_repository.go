@@ -58,6 +58,17 @@ func (r *chatRepository) GetPendingSessions(ctx context.Context) ([]models.ChatS
 	return sessions, err
 }
 
+func (r *chatRepository) GetAllSessions(ctx context.Context) ([]models.ChatSession, error) {
+	var sessions []models.ChatSession
+	err := r.db.WithContext(ctx).
+		Preload("User").
+		Preload("Admin").
+		Where("deleted_at IS NULL").
+		Order("created_at DESC").
+		Find(&sessions).Error
+	return sessions, err
+}
+
 func (r *chatRepository) GetUserActiveSession(ctx context.Context, userID uint) (*models.ChatSession, error) {
 	var session models.ChatSession
 	err := r.db.WithContext(ctx).

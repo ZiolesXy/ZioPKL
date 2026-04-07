@@ -11,6 +11,7 @@ type ChatRepository interface {
 	GetSessionByUID(ctx context.Context, uid string) (*models.ChatSession, error)
 	GetSessionByID(ctx context.Context, id uint) (*models.ChatSession, error)
 	GetPendingSessions(ctx context.Context) ([]models.ChatSession, error)
+	GetAllSessions(ctx context.Context) ([]models.ChatSession, error)
 	GetUserActiveSession(ctx context.Context, userID uint) (*models.ChatSession, error)
 	UpdateSessionStatus(ctx context.Context, id uint, status models.ChatSessionStatus, adminID *uint) error
 	UpdateLastMessage(ctx context.Context, sessionID uint, message string) error

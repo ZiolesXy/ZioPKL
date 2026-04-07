@@ -16,6 +16,7 @@ type ChatService interface {
 	CreateChatRequest(ctx context.Context, userID uint, message *string) (*models.ChatSession, error)
 	AcceptChatRequest(ctx context.Context, sessionUID string, adminID uint) (*models.ChatSession, error)
 	GetPendingChatRequests(ctx context.Context) ([]models.ChatSession, error)
+	GetAllChatSessions(ctx context.Context) ([]models.ChatSession, error)
 	GetUserActiveSession(ctx context.Context, userID uint) (*models.ChatSession, error)
 	GetSessionByUID(ctx context.Context, uid string, requesterID uint, role string) (*models.ChatSession, error)
 	GetChatHistory(ctx context.Context, sessionID uint, limit, offset int) ([]models.ChatMessage, error)
@@ -55,6 +56,12 @@ func (s *chatService) CreateChatRequest(ctx context.Context, userID uint, messag
 		return nil, fmt.Errorf("failed to create chat session: %w", err)
 	}
 
+	// Refetch to get preloaded User data (fixes missing user_name bug)
+	populatedSession, err := s.repo.GetSessionByID(ctx, session.ID)
+	if err == nil {
+		session = populatedSession
+	}
+
 	go s.hub.NotifyAdminsNewRequest(*session)
 
 	return session, nil
@@ -90,6 +97,10 @@ func (s *chatService) AcceptChatRequest(ctx context.Context, sessionUID string, 
 
 func (s *chatService) GetPendingChatRequests(ctx context.Context) ([]models.ChatSession, error) {
 	return s.repo.GetPendingSessions(ctx)
+}
+
+func (s *chatService) GetAllChatSessions(ctx context.Context) ([]models.ChatSession, error) {
+	return s.repo.GetAllSessions(ctx)
 }
 
 func (s *chatService) GetUserActiveSession(ctx context.Context, userID uint) (*models.ChatSession, error) {
