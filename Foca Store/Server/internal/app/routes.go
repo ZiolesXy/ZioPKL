@@ -116,13 +116,13 @@ func RegisterRoutes(r *gin.Engine, h map[string]interface{}, db *gorm.DB) {
 	sys.POST("/redis", system.ResetRedis)
 
 	seed := sys.Group("/seed")
-	seed.GET("/assets", system.SeedProductsFromAssets)
+	seed.POST("/assets", system.SeedProductsFromAssets)
 	seed.GET("/roles", system.SeedRoles)
 	seed.GET("/admin", system.SeedAdmin)
 	seed.GET("/users", system.SeedUsers)
-	seed.GET("/products", system.SeedProducts)
+	seed.POST("/products", system.SeedProducts)
 	seed.GET("/coupons", system.SeedCoupons)
-	seed.PUT("/sync", system.SyncAssetProducts)
-	seed.GET("/all", system.SeedAll)
-	seed.GET("/all-product", system.SeedAllWithProducts)
+	seed.POST("/sync", system.SyncAssetProducts)
+	seed.POST("/all", system.SeedAll)
+	seed.POST("/all-product", system.SeedAllWithProducts)
 }
