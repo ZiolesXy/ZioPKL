@@ -84,6 +84,7 @@ func RegisterRoutes(r *gin.Engine, h map[string]interface{}, db *gorm.DB) {
 
 	api.POST("/logout", auth.Logout)
 
+	// Chat
 	chats := api.Group("/chat")
 	chats.GET("/status", chatHandler.GetActiveSession)
 	chats.POST("/requests", chatHandler.CreateChatRequest)

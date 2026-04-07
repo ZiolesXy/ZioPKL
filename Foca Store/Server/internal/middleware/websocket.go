@@ -3,6 +3,7 @@ package middleware
 import (
 	"net/http"
 	"voca-store/internal/database"
+	"voca-store/internal/domain/dto/response"
 	"voca-store/internal/helper"
 
 	"github.com/gin-gonic/gin"
@@ -14,14 +15,14 @@ func WebSocketAuth(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tokenString := c.Query("token")
 		if tokenString == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Missing token"})
+			response.ErrorResponse(c, http.StatusUnauthorized, "missing token")
 			c.Abort()
 			return
 		}
 
 		claims, err := helper.ValidateAccessToken(tokenString)
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
+			response.ErrorResponse(c, http.StatusUnauthorized, "invalid or expired token")
 			c.Abort()
 			return
 		}
@@ -29,11 +30,11 @@ func WebSocketAuth(db *gorm.DB) gin.HandlerFunc {
 		// Check Redis blacklist
 		_, err = database.RDB.Get(database.Ctx, "blacklist:"+tokenString).Result()
 		if err == nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token revoked"})
+			response.ErrorResponse(c, http.StatusUnauthorized, "token revoked")
 			c.Abort()
 			return
 		} else if err != redis.Nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Auth service error"})
+			response.ErrorResponse(c, http.StatusInternalServerError, "auth service error")
 			c.Abort()
 			return
 		}
