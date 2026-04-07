@@ -91,7 +91,7 @@ func RegisterRoutes(r *gin.Engine, h map[string]interface{}, db *gorm.DB) {
 	chats.GET("/sessions/:session_uid", chatHandler.GetSessionByUID)
 	chats.GET("/sessions/:session_uid/messages", chatHandler.GetChatHistory)
 	chats.POST("/sessions/:session_uid/read", chatHandler.MarkMessagesRead)
-	chats.POST("/sessions/:session_uid/close", chatHandler.CloseSession)
+	chats.DELETE("/sessions/:session_uid/close", chatHandler.CloseSession)
 
 	// ADMIN ROUTES
 	admin := api.Group("/admin")

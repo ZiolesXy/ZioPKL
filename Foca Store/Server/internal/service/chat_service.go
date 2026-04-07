@@ -52,6 +52,13 @@ func (s *chatService) CreateChatRequest(ctx context.Context, userID uint, messag
 		session.LastMessageAt = &now
 	}
 
+	// if message == nil  || *message == "" {
+	// 	defaultMsg := "Halo Admin, saya butuh bantuan."
+	// 	session.LastMessage = &defaultMsg
+	// 	now := time.Now()
+	// 	session.LastMessageAt = &now
+	// }
+
 	if err := s.repo.CreateSession(ctx, session); err != nil {
 		return nil, fmt.Errorf("failed to create chat session: %w", err)
 	}
