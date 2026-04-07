@@ -51,7 +51,8 @@ func (r *chatRepository) GetPendingSessions(ctx context.Context) ([]models.ChatS
 	var sessions []models.ChatSession
 	err := r.db.WithContext(ctx).
 		Preload("User").
-		Where("status = ? AND deleted_at IS NULL", models.ChatSessionPending).
+		Where("(status = ? OR status = ?) AND admin_id IS NULL AND deleted_at IS NULL", 
+			models.ChatSessionPending, models.ChatSessionActive).
 		Order("created_at ASC").
 		Find(&sessions).Error
 	return sessions, err

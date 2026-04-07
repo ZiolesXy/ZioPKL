@@ -32,7 +32,6 @@ func RegisterRoutes(r *gin.Engine, h map[string]interface{}, db *gorm.DB) {
 
 	// PUBLIC ROUTES
 	r.GET("/", product.GetAllProducts)
-	r.GET("/chat/status", chatHandler.GetActiveSession)
 	r.GET("/password", system.GetNewSecret)
 
 	r.POST("/register", auth.Register)
@@ -86,6 +85,7 @@ func RegisterRoutes(r *gin.Engine, h map[string]interface{}, db *gorm.DB) {
 	api.POST("/logout", auth.Logout)
 
 	chats := api.Group("/chat")
+	chats.GET("/status", chatHandler.GetActiveSession)
 	chats.POST("/requests", chatHandler.CreateChatRequest)
 	chats.GET("/sessions/:session_uid", chatHandler.GetSessionByUID)
 	chats.GET("/sessions/:session_uid/messages", chatHandler.GetChatHistory)

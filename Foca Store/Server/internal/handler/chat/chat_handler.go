@@ -25,7 +25,11 @@ func NewChatHandler(svc service.ChatService, hub *websocket.Hub) *ChatHandler {
 // === HTTP HANDLERS ===
 
 func (h *ChatHandler) CreateChatRequest(c *gin.Context) {
-	userID, _ := c.Get("user_id")
+	userID := c.GetUint("user_id")
+	if userID == 0 {
+		response.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
+		return
+	}
 	var req request.CreateChatRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -33,7 +37,7 @@ func (h *ChatHandler) CreateChatRequest(c *gin.Context) {
 		return
 	}
 
-	session, err := h.service.CreateChatRequest(c.Request.Context(), userID.(uint), req.Message)
+	session, err := h.service.CreateChatRequest(c.Request.Context(), userID, req.Message)
 	if err != nil {
 		response.ErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
@@ -76,8 +80,12 @@ func (h *ChatHandler) GetPendingChatRequests(c *gin.Context) {
 }
 
 func (h *ChatHandler) GetActiveSession(c *gin.Context) {
-	userID, _ := c.Get("user_id")
-	session, err := h.service.GetUserActiveSession(c.Request.Context(), userID.(uint))
+	userID := c.GetUint("user_id")
+	if userID == 0 {
+		response.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
+		return
+	}
+	session, err := h.service.GetUserActiveSession(c.Request.Context(), userID)
 	if err != nil {
 		response.ErrorResponse(c, http.StatusNotFound, "No active chat session")
 		return
@@ -86,11 +94,15 @@ func (h *ChatHandler) GetActiveSession(c *gin.Context) {
 }
 
 func (h *ChatHandler) GetSessionByUID(c *gin.Context) {
-	userID, _ := c.Get("user_id")
+	userID := c.GetUint("user_id")
+	if userID == 0 {
+		response.ErrorResponse(c, http.StatusUnauthorized, "User not authenticated")
+		return
+	}
 	role, _ := c.Get("role")
 	sessionUID := c.Param("session_uid")
 
-	session, err := h.service.GetSessionByUID(c.Request.Context(), sessionUID, userID.(uint), role.(string))
+	session, err := h.service.GetSessionByUID(c.Request.Context(), sessionUID, userID, role.(string))
 	if err != nil {
 		response.ErrorResponse(c, http.StatusForbidden, err.Error())
 		return

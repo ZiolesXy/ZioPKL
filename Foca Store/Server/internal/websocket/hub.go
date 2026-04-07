@@ -208,6 +208,14 @@ func (h *Hub) handleChatMessage(client *Client, msg WSMessage) {
 		return
 	}
 
+	// Auto-assign admin current session if not assigned yet
+	if client.GetRole() == "Admin" && session.AdminID == nil {
+		adminID := client.GetUserID()
+		if err := h.repo.UpdateSessionStatus(ctx, session.ID, models.ChatSessionActive, &adminID); err != nil {
+			log.Printf("Failed to auto-assign admin to session: %v", err)
+		}
+	}
+
 	chatMsg := &models.ChatMessage{
 		SessionID:   session.ID,
 		SenderID:    client.GetUserID(),

@@ -42,7 +42,7 @@ func (s *chatService) CreateChatRequest(ctx context.Context, userID uint, messag
 	session := &models.ChatSession{
 		UID:     uuid.New().String(),
 		UserID:  userID,
-		Status:  models.ChatSessionPending,
+		Status:  models.ChatSessionActive,
 	}
 
 	if message != nil && *message != "" {
@@ -66,8 +66,12 @@ func (s *chatService) AcceptChatRequest(ctx context.Context, sessionUID string, 
 		return nil, errors.New("chat session not found")
 	}
 
-	if session.Status != models.ChatSessionPending {
+	if session.Status != models.ChatSessionPending && session.Status != models.ChatSessionActive {
 		return nil, fmt.Errorf("cannot accept session with status: %s", session.Status)
+	}
+
+	if session.AdminID != nil {
+		return nil, errors.New("chat session already has an assigned admin")
 	}
 
 	if err := s.repo.UpdateSessionStatus(ctx, session.ID, models.ChatSessionActive, &adminID); err != nil {
