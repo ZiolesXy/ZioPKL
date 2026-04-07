@@ -210,7 +210,16 @@ func (h *ChatHandler) WebSocketHandler(c *gin.Context) {
 		return
 	}
 
-	client := websocket.NewClient(h.hub, conn, sessionUID, userID, role)
+	userName := session.User.Name
+	if role == "Admin" {
+		if session.AdminID != nil && *session.AdminID == userID {
+			userName = session.Admin.Name
+		} else {
+			userName = "Admin"
+		}
+	}
+
+	client := websocket.NewClient(h.hub, conn, sessionUID, userID, role, userName)
 	
 	// === FIX: Gunakan exported method RegisterClient ===
 	h.hub.RegisterClient(client)

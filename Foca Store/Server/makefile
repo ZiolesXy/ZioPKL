@@ -50,3 +50,4 @@ redis-stop:
 redis-remove:
 	docker stop $(CONTAINER_NAME)
 	docker rm $(CONTAINER_NAME)
+	docker volume prune -f

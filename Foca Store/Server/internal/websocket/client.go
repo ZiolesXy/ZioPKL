@@ -40,18 +40,20 @@ type Client struct {
 	sessionUID string
 	userID     uint
 	role       string
+	userName   string
 	mu         sync.RWMutex
 	done       chan struct{}
 	once       sync.Once
 }
 
-func NewClient(hub *Hub, conn *websocket.Conn, sessionUID string, userID uint, role string) *Client {
+func NewClient(hub *Hub, conn *websocket.Conn, sessionUID string, userID uint, role string, userName string) *Client {
 	return &Client{
 		hub:        hub,
 		conn:       conn,
 		sessionUID: sessionUID,
 		userID:     userID,
 		role:       role,
+		userName:   userName,
 		send:       make(chan WSMessage, 256),
 		done:       make(chan struct{}),
 	}
@@ -74,6 +76,12 @@ func (c *Client) GetRole() string {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.role
+}
+
+func (c *Client) GetUserName() string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.userName
 }
 
 // === READ/WRITE PUMP (tidak diubah, pastikan ada) ===

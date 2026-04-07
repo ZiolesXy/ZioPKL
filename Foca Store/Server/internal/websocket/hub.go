@@ -246,8 +246,8 @@ func (h *Hub) handleChatMessage(client *Client, msg WSMessage) {
 	responseMsg := NewWSMessage(WSMsgTypeMessage, MessagePayload{
 		SessionUID:  session.UID,
 		SenderID:    client.GetUserID(),
-		SenderName:  session.User.Name,
-		SenderRole: senderRole,
+		SenderName:  client.GetUserName(),
+		SenderRole:  senderRole,
 		Content:     content,
 		MessageType: msgType,
 		MediaURL:    &mediaURL,
