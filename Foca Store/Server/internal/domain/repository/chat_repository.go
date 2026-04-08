@@ -16,6 +16,7 @@ type ChatRepository interface {
 	UpdateSessionStatus(ctx context.Context, id uint, status models.ChatSessionStatus, adminID *uint) error
 	UpdateLastMessage(ctx context.Context, sessionID uint, message string) error
 	CloseSession(ctx context.Context, id uint) error
+	IsAdmin(ctx context.Context, userID uint) (bool, error)
 
 	// Message
 	CreateMessage(ctx context.Context, message *models.ChatMessage) error

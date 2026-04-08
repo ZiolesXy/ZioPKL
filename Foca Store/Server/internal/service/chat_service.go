@@ -41,9 +41,9 @@ func (s *chatService) CreateChatRequest(ctx context.Context, userID uint, messag
 	}
 
 	session := &models.ChatSession{
-		UID:     uuid.New().String(),
-		UserID:  userID,
-		Status:  models.ChatSessionActive,
+		UID:    uuid.New().String(),
+		UserID: userID,
+		Status: models.ChatSessionActive,
 	}
 
 	if message != nil && *message != "" {
@@ -194,7 +194,12 @@ func (s *chatService) CloseChatSession(ctx context.Context, sessionUID string, c
 		return errors.New("chat session not found")
 	}
 
-	if session.UserID != closerID && (session.AdminID == nil || *session.AdminID != closerID) {
+	isAdmin, err := s.repo.IsAdmin(ctx, closerID)
+	if err != nil {
+		return errors.New("access denied")
+	}
+
+	if closerID != session.UserID && !isAdmin {
 		return errors.New("access denied")
 	}
 

@@ -104,6 +104,22 @@ func (r *chatRepository) UpdateLastMessage(ctx context.Context, sessionID uint, 
 		}).Error
 }
 
+func (r *chatRepository) IsAdmin(ctx context.Context, userID uint) (bool, error) {
+	var count int64
+
+	err := r.db.WithContext(ctx).
+		Table("users").
+		Joins("JOIN roles ON users.role_id = roles.id").
+		Where("users.id = ? AND roles.name = ?", userID, "Admin").
+		Count(&count).Error
+	
+	if err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
+}
+
 func (r *chatRepository) CloseSession(ctx context.Context, id uint) error {
 	return r.db.WithContext(ctx).
 		Model(&models.ChatSession{}).
