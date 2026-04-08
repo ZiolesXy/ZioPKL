@@ -88,7 +88,9 @@ func (h *ChatHandler) GetAllSessions(c *gin.Context) {
 
 	var resp []response.ChatSessionResponse
 	for _, s := range sessions {
-		resp = append(resp, response.ToChatSessionResponse(s))
+		if s.Status == "active" {
+			resp = append(resp, response.ToChatSessionResponse(s))
+		}
 	}
 
 	response.SuccessResponse(c, "All chat sessions retrieved", helper.WrapListIfNeeded(resp))
