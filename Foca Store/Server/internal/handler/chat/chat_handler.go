@@ -137,7 +137,7 @@ func (h *ChatHandler) GetChatHistory(c *gin.Context) {
 		return
 	}
 
-	session, err := h.service.GetSessionByUID(c.Request.Context(), req.SessionUID, 
+	session, err := h.service.GetSessionByUID(c.Request.Context(), req.SessionUID,
 		c.GetUint("user_id"), c.GetString("role"))
 	if err != nil {
 		response.ErrorResponse(c, http.StatusForbidden, err.Error())
@@ -153,9 +153,10 @@ func (h *ChatHandler) GetChatHistory(c *gin.Context) {
 	var resp []response.ChatMessageResponse
 	for _, msg := range messages {
 		senderRole := "user"
-		if session.AdminID != nil && msg.SenderID == *session.AdminID {
+		if msg.Sender.Role.Name == "Admin" {
 			senderRole = "admin"
 		}
+
 		resp = append(resp, response.ToChatMessageResponse(msg, senderRole))
 	}
 
@@ -220,7 +221,7 @@ func (h *ChatHandler) WebSocketHandler(c *gin.Context) {
 	}
 
 	client := websocket.NewClient(h.hub, conn, sessionUID, userID, role, userName)
-	
+
 	// === FIX: Gunakan exported method RegisterClient ===
 	h.hub.RegisterClient(client)
 

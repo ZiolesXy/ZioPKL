@@ -121,6 +121,7 @@ func (r *chatRepository) GetMessagesBySession(ctx context.Context, sessionID uin
 	var messages []models.ChatMessage
 	err := r.db.WithContext(ctx).
 		Preload("Sender").
+		Preload("Sender.Role").
 		Preload("Session").
 		Where("session_id = ? AND deleted_at IS NULL", sessionID).
 		Order("created_at ASC").
