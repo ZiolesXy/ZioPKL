@@ -144,3 +144,11 @@ func (h *SystemHandler) SeedAllWithProducts(c *gin.Context) {
 	}
 	response.SuccessResponse(c, "All data with products seeded successfully", nil)
 }
+
+func (h *SystemHandler) ClearChatHistory(c *gin.Context) {
+	if err := h.systemService.ClearChat(); err != nil {
+		response.ErrorResponse(c, http.StatusInternalServerError, "Failed to clear chat history")
+		return
+	}
+	response.SuccessResponse(c, "Chat history cleared successfully", nil)
+}

@@ -24,6 +24,7 @@ type SystemService interface {
 	MigrateAll() error
 	ResetRedis() error
 	DeleteAllCloudinaryAssets() error
+	ClearChat() error
 	GenerateSecret() (string, error)
 }
 
@@ -100,6 +101,10 @@ func (s *systemService) ResetRedis() error {
 
 func (s *systemService) DeleteAllCloudinaryAssets() error {
 	return helper.DeleteAllAssets()
+}
+
+func (s *systemService) ClearChat() error {
+	return seeders.ClearChat(s.db)
 }
 
 func (s *systemService) GenerateSecret() (string, error) {

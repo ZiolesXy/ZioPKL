@@ -39,3 +39,10 @@ func DropTableExceptProductsAndCategories(db *gorm.DB) error {
 		&models.ChatMessage{},
 	)
 }
+
+func DropChat(db *gorm.DB) error {
+	return db.Migrator().DropTable(
+		&models.ChatSession{},
+		&models.ChatMessage{},
+	)
+}

@@ -126,6 +126,7 @@ func RegisterRoutes(r *gin.Engine, h map[string]interface{}, db *gorm.DB) {
 	sys.POST("/reset", system.ResetDatabase)
 	sys.POST("/reset/product", system.ResetDatabaseWithProducts)
 	sys.POST("/reset/catalog", system.ResetDatabasePreserveCatalog)
+	sys.POST("/reset/chat", system.ClearChatHistory)
 	sys.POST("/migrate", system.Migrate)
 	sys.DELETE("/reset/assets", system.DeleteAllCloudinaryAssets)
 	sys.POST("/redis", system.ResetRedis)

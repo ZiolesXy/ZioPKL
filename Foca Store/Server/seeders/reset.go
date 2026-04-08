@@ -123,3 +123,15 @@ func ResetDatabasePreserveProductsAndCategories(db *gorm.DB, rdb *redis.Client) 
 
 	return nil
 }
+
+func ClearChat (db *gorm.DB) error {
+	if err := DropChat(db); err != nil {
+		return err
+	}
+
+	if err := MigrateAll(db); err != nil {
+		return err
+	}
+
+	return nil
+}
