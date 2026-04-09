@@ -14,6 +14,7 @@ import (
 
 type ChatService interface {
 	CreateChatRequest(ctx context.Context, userID uint, message *string) (*models.ChatSession, error)
+	SearchChatSessions(ctx context.Context, keyword string) ([]models.ChatSession, error)
 	AcceptChatRequest(ctx context.Context, sessionUID string, adminID uint) (*models.ChatSession, error)
 	GetPendingChatRequests(ctx context.Context) ([]models.ChatSession, error)
 	GetAllChatSessions(ctx context.Context) ([]models.ChatSession, error)
@@ -72,6 +73,13 @@ func (s *chatService) CreateChatRequest(ctx context.Context, userID uint, messag
 	go s.hub.NotifyAdminsNewRequest(*session)
 
 	return session, nil
+}
+
+func (s *chatService) SearchChatSessions(ctx context.Context, keyword string) ([]models.ChatSession, error) {
+	if keyword == "" {
+		return nil, errors.New("keyword cannot be empty")
+	}
+	return s.repo.GetSessionByName(ctx, keyword)
 }
 
 func (s *chatService) AcceptChatRequest(ctx context.Context, sessionUID string, adminID uint) (*models.ChatSession, error) {

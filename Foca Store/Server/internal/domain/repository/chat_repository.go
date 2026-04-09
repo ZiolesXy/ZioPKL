@@ -9,6 +9,7 @@ type ChatRepository interface {
 	// Session
 	CreateSession(ctx context.Context, session *models.ChatSession) error
 	GetSessionByUID(ctx context.Context, uid string) (*models.ChatSession, error)
+	GetSessionByName(ctx context.Context, name string) ([]models.ChatSession, error)
 	GetSessionByID(ctx context.Context, id uint) (*models.ChatSession, error)
 	GetPendingSessions(ctx context.Context) ([]models.ChatSession, error)
 	GetAllSessions(ctx context.Context) ([]models.ChatSession, error)

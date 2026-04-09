@@ -88,6 +88,7 @@ func RegisterRoutes(r *gin.Engine, h map[string]interface{}, db *gorm.DB) {
 
 	// Chat
 	chats := api.Group("/chat")
+	chats.GET("/search", chat.SearchChatSessions)
 	chats.GET("/status", chat.GetActiveSession)
 	chats.POST("/requests", chat.CreateChatRequest)
 	chats.GET("/sessions/:session_uid", chat.GetSessionByUID)

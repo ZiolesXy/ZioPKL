@@ -46,6 +46,27 @@ func (h *ChatHandler) CreateChatRequest(c *gin.Context) {
 	response.SuccessResponse(c, "Chat request created successfully", response.ToChatSessionResponse(*session))
 }
 
+func (h *ChatHandler) SearchChatSessions(c *gin.Context) {
+	keywords := c.Query("keyword")
+	if keywords == "" {
+		response.ErrorResponse(c, http.StatusBadRequest, "keyword is required")
+		return
+	}
+
+	sessions, err := h.service.SearchChatSessions(c.Request.Context(), keywords)
+	if err != nil {
+		response.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	var resp []response.ChatSessionResponse
+	for _, s := range sessions {
+		resp = append(resp, response.ToChatSessionResponse(s))
+	}
+
+	response.SuccessResponse(c, "search results", helper.WrapListIfNeeded(resp))
+}
+
 func (h *ChatHandler) AcceptChatRequest(c *gin.Context) {
 	var req request.AcceptChatRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

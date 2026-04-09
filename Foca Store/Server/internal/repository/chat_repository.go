@@ -34,6 +34,21 @@ func (r *chatRepository) GetSessionByUID(ctx context.Context, uid string) (*mode
 	return &session, nil
 }
 
+func (r *chatRepository) GetSessionByName(ctx context.Context, name string) ([]models.ChatSession, error) {
+	var sessions []models.ChatSession
+
+	err := r.db.WithContext(ctx).
+		Preload("User").
+		Preload("Admin").
+		Joins("JOIN users u ON u.id = chat_sessions.user_id").
+		Where("LOWER(u.name) LIKE LOWER(?)", "%"+name+"%").
+		Where("chat_sessions.deleted_at IS NULL").
+		Order("chat_sessions.last_message_at DESC").
+		Find(&sessions).Error
+
+	return sessions, err
+}
+
 func (r *chatRepository) GetSessionByID(ctx context.Context, id uint) (*models.ChatSession, error) {
 	var session models.ChatSession
 	err := r.db.WithContext(ctx).
