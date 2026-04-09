@@ -99,7 +99,7 @@ func RegisterRoutes(r *gin.Engine, h map[string]interface{}, db *gorm.DB) {
 	admin := api.Group("/admin")
 	admin.Use(middleware.AdminOnly())
 
-	admin.GET("", admins.GetDashboard)
+	admin.GET("/overview", admins.GetDashboard)
 	admin.POST("/category", category.CreateCategory)
 	admin.PUT("/category/:id", category.UpdateCategory)
 	admin.DELETE("/category/:id", category.DeleteCategory)

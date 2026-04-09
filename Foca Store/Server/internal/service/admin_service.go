@@ -23,7 +23,17 @@ func (s *adminService) GetDashboardData() (*response.DashboardData, error) {
 		return nil, err
 	}
 
+	category, err := s.dashboardRepo.CountCategory()
+	if err != nil {
+		return nil, err
+	}
+
 	products, err := s.dashboardRepo.CountProducts()
+	if err != nil {
+		return nil, err
+	}
+
+	coupons, err := s.dashboardRepo.CountCoupons()
 	if err != nil {
 		return nil, err
 	}
@@ -43,11 +53,25 @@ func (s *adminService) GetDashboardData() (*response.DashboardData, error) {
 		return nil, err
 	}
 
+	accepted, err := s.dashboardRepo.CountAcceptedOrders()
+	if err != nil {
+		return nil, err
+	}
+
+	decline, err := s.dashboardRepo.CountDeclineOrders()
+	if err != nil {
+		return nil, err
+	}
+
 	return &response.DashboardData{
 		TotalUsers:    users,
+		TotalCategory: category,
 		TotalProducts: products,
+		TotalCoupons: coupons,
 		TotalOrders:   orders,
 		TotalRevenue:  revenue,
 		PendingOrders: pending,
+		AcceptedOrders: accepted,
+		DeclineOrders: decline,
 	}, nil
 }

@@ -21,9 +21,21 @@ func (r *dashboardRepository) CountUsers() (int64, error) {
 	return count, err
 }
 
+func (r *dashboardRepository) CountCategory() (int64, error) {
+	var count int64
+	err := r.db.Model(&models.Category{}).Count(&count).Error
+	return count, err
+}
+
 func (r *dashboardRepository) CountProducts() (int64, error) {
 	var count int64
 	err := r.db.Model(&models.Product{}).Count(&count).Error
+	return count, err
+}
+
+func (r *dashboardRepository) CountCoupons() (int64, error) {
+	var count int64
+	err := r.db.Model(&models.Coupon{}).Count(&count).Error
 	return count, err
 }
 
@@ -47,6 +59,22 @@ func (r *dashboardRepository) CountPendingOrders() (int64, error) {
 	var count int64
 	err := r.db.Model(&models.Checkout{}).
 		Where("status = ?", "pending").
+		Count(&count).Error
+	return count, err
+}
+
+func (r *dashboardRepository) CountAcceptedOrders() (int64, error) {
+	var count int64
+	err := r.db.Model(&models.Checkout{}).
+		Where("status = ?", "approved").
+		Count(&count).Error
+	return count, err
+}
+
+func (r *dashboardRepository) CountDeclineOrders() (int64, error) {
+	var count int64
+	err := r.db.Model(&models.Checkout{}).
+		Where("status = ?", "rejected").
 		Count(&count).Error
 	return count, err
 }
