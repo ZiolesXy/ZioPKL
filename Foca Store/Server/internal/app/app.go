@@ -11,6 +11,7 @@ import (
 	"time"
 	"voca-store/internal/database"
 	"voca-store/internal/handler/address"
+	"voca-store/internal/handler/admin"
 	"voca-store/internal/handler/auth"
 	"voca-store/internal/handler/cart"
 	"voca-store/internal/handler/category"
@@ -35,8 +36,8 @@ import (
 type App struct {
 	Router *gin.Engine
 	DB     *gorm.DB
-    Redis  *redis.Client
-	WsHub *websocket.Hub
+	Redis  *redis.Client
+	WsHub  *websocket.Hub
 }
 
 func New() *App {
@@ -47,7 +48,7 @@ func New() *App {
 
 	// Init Cloudinary
 	if err := helper.InitCloudinary(); err != nil {
-		log.Println("Cloudinary Warning: ",err)
+		log.Println("Cloudinary Warning: ", err)
 	}
 
 	// Init DB & REDIS
@@ -70,6 +71,7 @@ func New() *App {
 	addressRepo := repository.NewAddressRepository(db)
 	chatRepo := repository.NewChatRepository(db)
 	wsHub := websocket.NewHub(chatRepo)
+	dashboardRepo := repository.NewDashboardRepository(db)
 
 	// Service
 	categoryService := service.NewCategoryService(categoryRepo)
@@ -81,6 +83,7 @@ func New() *App {
 	addressService := service.NewAddressService(addressRepo)
 	systemService := service.NewSystemService(db, rdb)
 	chatService := service.NewChatService(chatRepo, wsHub)
+	adminService := service.NewAdminService(dashboardRepo)
 
 	// Handler
 	handlers := map[string]interface{}{
@@ -94,16 +97,17 @@ func New() *App {
 		"coupon":   coupon.NewCouponHandler(couponService),
 		"address":  address.NewAddressHandler(addressService),
 		"system":   system.NewSystemHandler(systemService),
-		"chat":	 chat.NewChatHandler(chatService, wsHub),
+		"chat":     chat.NewChatHandler(chatService, wsHub),
+		"admin":    admin.NewAdminHandler(adminService),
 	}
 
 	r := SetUpServer()
 	RegisterRoutes(r, handlers, db)
 	return &App{
 		Router: r,
-		DB: db,
-		Redis: rdb,
-		WsHub: wsHub,
+		DB:     db,
+		Redis:  rdb,
+		WsHub:  wsHub,
 	}
 }
 
@@ -117,14 +121,14 @@ func (a *App) Run() error {
 	}
 
 	server := &http.Server{
-		Addr: ":" + port,
+		Addr:    ":" + port,
 		Handler: a.Router,
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	go func ()  {
+	go func() {
 		fmt.Printf("Server running on port %s\n", port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Server error: %v", err)

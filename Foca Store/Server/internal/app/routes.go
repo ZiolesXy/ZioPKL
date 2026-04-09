@@ -2,6 +2,7 @@ package app
 
 import (
 	"voca-store/internal/handler/address"
+	"voca-store/internal/handler/admin"
 	"voca-store/internal/handler/auth"
 	"voca-store/internal/handler/cart"
 	"voca-store/internal/handler/category"
@@ -29,6 +30,7 @@ func RegisterRoutes(r *gin.Engine, h map[string]interface{}, db *gorm.DB) {
 	address := h["address"].(*address.AddressHandler)
 	system := h["system"].(*system.SystemHandler)
 	chat := h["chat"].(*chat.ChatHandler)
+	admins := h["admin"].(*admin.AdminHandler)
 
 	// PUBLIC ROUTES
 	r.GET("/", product.GetAllProducts)
@@ -46,7 +48,7 @@ func RegisterRoutes(r *gin.Engine, h map[string]interface{}, db *gorm.DB) {
 	r.GET("/products", product.GetAllProducts)
 
 	r.GET("/coupons", coupon.GetCoupons)
-	r.POST("/midtrans/webhook", midtrans.MidtransWebhook)
+	r.POST("/api/v1/transactions/midtrans/callback", midtrans.MidtransWebhook)
 
 	// PROTECTED ROUTES
 	api := r.Group("/api")
@@ -97,6 +99,7 @@ func RegisterRoutes(r *gin.Engine, h map[string]interface{}, db *gorm.DB) {
 	admin := api.Group("/admin")
 	admin.Use(middleware.AdminOnly())
 
+	admin.GET("", admins.GetDashboard)
 	admin.POST("/category", category.CreateCategory)
 	admin.PUT("/category/:id", category.UpdateCategory)
 	admin.DELETE("/category/:id", category.DeleteCategory)
