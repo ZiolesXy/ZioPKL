@@ -28,7 +28,7 @@ func RegisterRoutes(r *gin.Engine, h map[string]interface{}, db *gorm.DB) {
 	coupon := h["coupon"].(*coupon.CouponHandler)
 	address := h["address"].(*address.AddressHandler)
 	system := h["system"].(*system.SystemHandler)
-	chatHandler := h["chat"].(*chat.ChatHandler)
+	chat := h["chat"].(*chat.ChatHandler)
 
 	// PUBLIC ROUTES
 	r.GET("/", product.GetAllProducts)
@@ -86,12 +86,12 @@ func RegisterRoutes(r *gin.Engine, h map[string]interface{}, db *gorm.DB) {
 
 	// Chat
 	chats := api.Group("/chat")
-	chats.GET("/status", chatHandler.GetActiveSession)
-	chats.POST("/requests", chatHandler.CreateChatRequest)
-	chats.GET("/sessions/:session_uid", chatHandler.GetSessionByUID)
-	chats.GET("/sessions/:session_uid/messages", chatHandler.GetChatHistory)
-	chats.POST("/sessions/:session_uid/read", chatHandler.MarkMessagesRead)
-	chats.DELETE("/sessions/:session_uid/close", chatHandler.CloseSession)
+	chats.GET("/status", chat.GetActiveSession)
+	chats.POST("/requests", chat.CreateChatRequest)
+	chats.GET("/sessions/:session_uid", chat.GetSessionByUID)
+	chats.GET("/sessions/:session_uid/messages", chat.GetChatHistory)
+	chats.POST("/sessions/:session_uid/read", chat.MarkMessagesRead)
+	chats.DELETE("/sessions/:session_uid/close", chat.CloseSession)
 
 	// ADMIN ROUTES
 	admin := api.Group("/admin")
@@ -115,9 +115,9 @@ func RegisterRoutes(r *gin.Engine, h map[string]interface{}, db *gorm.DB) {
 	admin.PATCH("/checkout/:id/approve", checkouts.ApproveCheckout)
 	admin.PATCH("/checkout/:id/reject", checkouts.RejectCheckout)
 
-	admin.GET("/chat/pending", chatHandler.GetPendingChatRequests)
-	admin.GET("/chat/sessions", chatHandler.GetAllSessions)
-	admin.POST("/chat/requests/:session_uid/accept", chatHandler.AcceptChatRequest)
+	admin.GET("/chat/pending", chat.GetPendingChatRequests)
+	admin.GET("/chat/sessions", chat.GetAllSessions)
+	admin.POST("/chat/requests/:session_uid/accept", chat.AcceptChatRequest)
 
 	// SYSTEM ROUTES
 	sys := r.Group("/system")
@@ -146,6 +146,6 @@ func RegisterRoutes(r *gin.Engine, h map[string]interface{}, db *gorm.DB) {
 	ws := r.Group("/ws")
 	ws.Use(middleware.WebSocketAuth(db))
 	{
-		ws.GET("/chat/:session_uid", chatHandler.WebSocketHandler)
+		ws.GET("/chat/:session_uid", chat.WebSocketHandler)
 	}
 }
