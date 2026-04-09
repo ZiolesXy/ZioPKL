@@ -19,6 +19,6 @@ COPY --from=builder /app/server .
 
 COPY .env .env
 
-EXPOSE 8080
+EXPOSE 8000
 
 CMD [ "./server" ]
