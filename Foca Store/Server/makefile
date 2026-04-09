@@ -57,7 +57,7 @@ rebuild-nocache:
 # Cleanup
 clean:
 	$(DOCKER_COMPOSE) down -v
-	docker system prune -f
+	docker system prune -a
 
 delete-all:
 	docker system prune -a --volumes
