@@ -16,13 +16,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <div className="h-6 w-[1px] bg-slate-200 dark:bg-white/10" />
             <AdminSearch />
           </div>
-          <div className="flex items-center gap-4">
-             <div className="bg-primary/5 text-primary text-[10px] font-black uppercase tracking-[0.2em] px-4 py-1.5 rounded-full border border-primary/10">
-               Production Ready
-             </div>
-             <div className="h-8 w-[1px] bg-slate-200 dark:bg-white/10 mx-2" />
-             <ThemeToggle />
-          </div>
+          
         </header>
         <div className="flex-1 p-4 lg:p-6">
           {children}

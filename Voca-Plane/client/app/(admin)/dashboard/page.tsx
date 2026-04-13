@@ -81,9 +81,6 @@ export default async function DashboardPage() {
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">Dashboard</h1>
           <p className="text-slate-500">Welcome back! Here's what's happening today.</p>
         </div>
-        <Button className="bg-indigo-600 hover:bg-indigo-700 shadow-md">
-          Export Report
-        </Button>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
