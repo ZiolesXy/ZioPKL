@@ -23,6 +23,12 @@ func SeedAll(db *gorm.DB) {
 	log.Println(">>> SEEDING COMPLETED")
 }
 
+func SeedMain(db *gorm.DB) {
+	log.Println(">>> STARTING FULL SEEDING...")
+	SeedUsers(db)
+	log.Println(">>> SEEDING COMPLETED")
+}
+
 func DropAll(db *gorm.DB) {
     log.Println(">>> DROPPING ALL TABLES...")
 
@@ -297,6 +303,6 @@ func InitSeeders(db *gorm.DB) {
 	var count int64
 	db.Model(&models.User{}).Count(&count)
 	if count == 0 {
-		SeedAll(db)
+		SeedMain(db)
 	}
 }

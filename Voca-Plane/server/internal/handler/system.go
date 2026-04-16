@@ -26,3 +26,12 @@ func (h *SystemHandler) Seed(c *gin.Context) {
 
 	response.Success(c, http.StatusOK, "database reset and seeded successfully", nil)
 }
+
+func (h *SystemHandler) Reset(c *gin.Context) {
+	if err := h.systemService.Reset(c.Request.Context()); err != nil {
+		response.Error(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	response.Success(c, http.StatusOK, "database success succesfully", nil)
+}

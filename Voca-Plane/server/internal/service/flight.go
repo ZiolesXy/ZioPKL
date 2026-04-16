@@ -27,7 +27,7 @@ func (s *FlightService) SearchFlight(ctx context.Context, origin, destination, d
 		return nil, 0, err
 	}
 
-	var flightResponses []response.FlightResponse
+	flightResponses := make([]response.FlightResponse, 0)
 	for _, f := range flights {
 		flightResponses = append(flightResponses, response.ToFlightResponse(f))
 	}
@@ -56,7 +56,7 @@ func (s *FlightService) GetAllFlights(ctx context.Context, page, limit int, sort
 		return nil, 0, err
 	}
 
-	var flightResponses []response.FlightResponse
+	flightResponses := make([]response.FlightResponse, 0)
 	for _, f := range flights {
 		flightResponses = append(flightResponses, response.ToFlightResponse(f))
 	}
@@ -70,7 +70,7 @@ func (s *FlightService) GetAllFlightsFull (ctx context.Context) ([]response.Flig
 		return nil, err
 	}
 
-	var res []response.FlightResponse
+	res := make([]response.FlightResponse, 0)
 	for _, f := range flights {
 		res = append(res, response.ToFlightResponse(f))
 	}

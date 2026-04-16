@@ -53,7 +53,7 @@ func (s *AdminService) GetAllUsers(ctx context.Context, page, limit int, sortBy,
 		return nil, 0, err
 	}
 
-	var res []response.UserResponse
+	res := make([]response.UserResponse, 0)
 	for _, u := range users {
 		res = append(res, response.ToUserResponse(u))
 	}
@@ -120,7 +120,7 @@ func (s *AdminService) GetAllFlights(ctx context.Context, page, limit int, sortB
 		return nil, 0, err
 	}
 
-	var flightResponses []response.FlightResponse
+	flightResponses := make([]response.FlightResponse, 0)
 	for _, f := range flights {
 		flightResponses = append(flightResponses, response.ToFlightResponse(f))
 	}
@@ -358,7 +358,7 @@ func (s *AdminService) GetAllAirlines(ctx context.Context, page, limit int, sort
 		return nil, 0, err
 	}
 
-	var res []response.AirlineResponse
+	res := make([]response.AirlineResponse, 0)
 	for _, a := range airlines {
 		res = append(res, response.ToAirlineResponse(a))
 	}
@@ -439,7 +439,7 @@ func (s *AdminService) GetAllAirports(ctx context.Context, page, limit int, sort
 		return nil, 0, err
 	}
 
-	var res []response.AirportResponse
+	res := make([]response.AirportResponse, 0)
 	for _, a := range airports {
 		res = append(res, response.ToAirportResponse(a))
 	}

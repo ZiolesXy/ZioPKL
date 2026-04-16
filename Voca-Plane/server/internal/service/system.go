@@ -9,6 +9,7 @@ import (
 )
 
 type SystemService interface {
+	Reset (ctx context.Context) error
 	ResetAndSeed(ctx context.Context) error
 }
 
@@ -30,5 +31,14 @@ func (s *systemService) ResetAndSeed(ctx context.Context) error {
 	}
 
 	seeders.SeedAll(s.db)
+	return nil
+}
+
+func (s *systemService) Reset(ctx context.Context) error {
+	if err := s.systemRepo.ResetDatabase(ctx); err != nil {
+		return err
+	}
+
+	seeders.SeedMain(s.db)
 	return nil
 }

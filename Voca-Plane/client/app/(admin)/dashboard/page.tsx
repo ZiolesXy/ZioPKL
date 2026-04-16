@@ -108,7 +108,9 @@ export default async function DashboardPage() {
                 <CardTitle>Recent Transactions</CardTitle>
                 <CardDescription>Latest flight bookings across the platform.</CardDescription>
               </div>
-              <Button variant="outline" size="sm">View All</Button>
+              <Button variant="outline" size="sm">
+                <a href="http://localhost:3000/transactions">View All</a>
+              </Button>
             </div>
           </CardHeader>
           <CardContent>

@@ -1,15 +1,21 @@
 import { Button } from '@/components/ui/button';
-import { Plane, QrCode, Download, Mail, ChevronLeft, Calendar, User, Armchair, Clock, Info } from 'lucide-react';
+import { Plane, QrCode, ChevronLeft, User, Clock } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { getTransactionByCode } from '@/lib/api/TransactionApi';
 import Link from 'next/link';
 import { Transaction } from '@/lib/type/transaction';
 import { Badge } from '@/components/ui/badge';
+import { BookingActions } from '@/components/BookingActions';
 
 export default async function BookingDetailPage({ params }: { params: Promise<{ code: string }> }) {
   const { code: bookingCode } = await params;
   const response = await getTransactionByCode(bookingCode);
   const booking: Transaction = response.data;
+  const passengers =
+    booking?.transaction_items ||
+    booking?.transactions_passangers ||
+    booking?.transactions_passanger ||
+    [];
 
   if (!booking) return (
     <div className="bg-slate-50 min-h-screen py-20 px-4 flex justify-center items-center">
@@ -79,7 +85,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
                 <div className="h-[2px] w-24 bg-slate-100 relative">
                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-2 bg-blue-600 rounded-full" />
                 </div>
-                <p className="text-[10px] font-bold text-slate-400 mt-2 uppercase">{booking.flight_number} </p>
+                <p className="text-[10px] font-bold text-slate-400 mt-2 uppercase">{booking.flight?.flight_number || '-'} </p>
               </div>
               <div className="flex-1 text-right">
                 <p className="text-4xl font-black text-slate-900">{booking.flight?.destination?.code || '---'}</p>
@@ -91,7 +97,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
             <div className="mb-10">
               <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4">Informasi Penumpang [cite: 79]</p>
               <div className="space-y-4">
-                {booking.transactions_passanger?.map((passenger, index) => (
+                {passengers.map((passenger, index) => (
                   <div key={index} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 group hover:border-blue-200 transition-colors">
                     <div className="flex items-center gap-4">
                       <div className="bg-white p-2.5 rounded-xl border border-slate-200 text-slate-400 group-hover:text-blue-600 transition-colors">
@@ -132,7 +138,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4">Rincian Harga </p>
                <div className="space-y-3">
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">Harga Tiket ({booking.transactions_passanger?.length} Penumpang) [cite: 79]</span>
+                    <span className="text-slate-500">Harga Tiket ({passengers.length} Penumpang) [cite: 79]</span>
                     <span className="font-semibold text-slate-900">Rp {(booking.total_price + booking.discount).toLocaleString('id-ID')}</span>
                   </div>
                   {booking.discount > 0 && (
@@ -162,14 +168,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
         {/* 7. ACTIONS */}
         <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
           {isSuccess ? (
-            <>
-                <Button variant="outline" className="h-14 rounded-2xl font-bold bg-white border-slate-200">
-                    <Download className="mr-2 size-5" /> Download E-Ticket
-                </Button>
-                <Button className="h-14 rounded-2xl font-bold bg-blue-600">
-                    <Mail className="mr-2 size-5" /> Kirim Email
-                </Button>
-            </>
+            <BookingActions booking={booking} isSuccess={isSuccess} />
           ) : isPending ? (
             <Link href={booking.payment_url || '#'} className="col-span-2">
                 <Button className="w-full h-14 rounded-2xl font-bold bg-amber-500 hover:bg-amber-600 shadow-lg shadow-amber-200">

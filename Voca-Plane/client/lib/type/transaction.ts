@@ -1,6 +1,6 @@
 // types/transaction.ts
 
-import { PaymentStatus, FlightClassType } from "./base"
+import { PaymentStatus } from "./base"
 import { Flight } from "./flight"
 import { User } from "./user"
 
@@ -18,7 +18,9 @@ export interface Transaction {
   code: string
   user?: Pick<User, "id" | "name" | "email">
   flight: Flight
-  transactions_passangers: TransactionPassenger[]
+  transaction_items?: TransactionPassenger[]
+  transactions_passangers?: TransactionPassenger[]
+  transactions_passanger?: TransactionPassenger[]
   total_price: number
   discount: number
   payment_url: string

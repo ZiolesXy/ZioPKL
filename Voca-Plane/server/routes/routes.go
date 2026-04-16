@@ -40,6 +40,7 @@ func SetUpRoutes(r *gin.Engine,
 		sys.Use(middleware.AppPassword(appPassword))
 		{
 			sys.POST("/seed", systemHandler.Seed)
+			sys.POST("/reset", systemHandler.Reset)
 		}
 
 		// Public Auth
