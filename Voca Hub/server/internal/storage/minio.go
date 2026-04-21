@@ -142,7 +142,15 @@ func (s *MinIOStorage) ExtractObjectPrefix(value string) string {
 }
 
 func (s *MinIOStorage) GetObject(objectName string) (*minio.Object, minio.ObjectInfo, error) {
-	object, err := s.client.GetObject(context.Background(), s.bucket, objectName, minio.GetObjectOptions{})
+	return s.getObjectFromBucket(s.bucket, objectName)
+}
+
+func (s *MinIOStorage) GetThumbnailObject(objectName string) (*minio.Object, minio.ObjectInfo, error) {
+	return s.getObjectFromBucket(s.thumbnailBucket, objectName)
+}
+
+func (s *MinIOStorage) getObjectFromBucket(bucket string, objectName string) (*minio.Object, minio.ObjectInfo, error) {
+	object, err := s.client.GetObject(context.Background(), bucket, objectName, minio.GetObjectOptions{})
 	if err != nil {
 		return nil, minio.ObjectInfo{}, err
 	}

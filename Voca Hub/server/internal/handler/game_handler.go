@@ -240,6 +240,26 @@ func (h *GameHandler) ServeRootAssetFallback(c *gin.Context) {
 	}
 }
 
+func (h *GameHandler) ServeThumbnail(c *gin.Context) {
+	filePath := strings.TrimPrefix(c.Param("filepath"), "/")
+	reader, contentType, err := h.gameService.OpenThumbnailAsset(filePath)
+	if err != nil {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+	defer reader.Close()
+
+	contentType = detectContentType(filePath, contentType)
+	if contentType != "" {
+		c.Header("Content-Type", contentType)
+	}
+	c.Header("Cache-Control", "public, max-age=3600")
+
+	if _, err := io.Copy(c.Writer, reader); err != nil {
+		c.Status(http.StatusInternalServerError)
+	}
+}
+
 func isHTMLAsset(path string, contentType string) bool {
 	if strings.HasPrefix(contentType, "text/html") {
 		return true

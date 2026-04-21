@@ -286,7 +286,25 @@ func (s *GameService) BuildThumbnailURL(objectName string) string {
 	if strings.TrimSpace(objectName) == "" {
 		return ""
 	}
-	return s.minioStorage.BuildThumbnailURL(objectName)
+	return "/games/thumbnail/" + strings.TrimLeft(objectName, "/")
+}
+
+func (s *GameService) OpenThumbnailAsset(objectName string) (io.ReadCloser, string, error) {
+	cleanObjectName := strings.TrimPrefix(filepath.ToSlash(filepath.Clean("/"+objectName)), "/")
+	if cleanObjectName == "" || cleanObjectName == "." {
+		return nil, "", errors.New("thumbnail not found")
+	}
+	for _, segment := range strings.Split(cleanObjectName, "/") {
+		if segment == ".." {
+			return nil, "", errors.New("invalid thumbnail path")
+		}
+	}
+
+	object, info, err := s.minioStorage.GetThumbnailObject(cleanObjectName)
+	if err != nil {
+		return nil, "", err
+	}
+	return object, info.ContentType, nil
 }
 
 func (s *GameService) OpenGameAsset(id uint, assetPath string) (io.ReadCloser, string, error) {

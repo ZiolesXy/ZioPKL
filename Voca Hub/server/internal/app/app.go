@@ -91,6 +91,7 @@ func New() (*App, error) {
 
 	router.GET("/play/:id", gameHandler.ServeGameFile)
 	router.GET("/play/:id/*filepath", gameHandler.ServeGameFile)
+	router.GET("/games/thumbnail/*filepath", gameHandler.ServeThumbnail)
 	router.NoRoute(gameHandler.ServeRootAssetFallback)
 
 	api := router.Group("/api")
