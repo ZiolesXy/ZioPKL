@@ -21,30 +21,33 @@ import (
 )
 
 type GameService struct {
-	gameRepo     domainrepo.GameRepository
-	userRepo     domainrepo.UserRepository
-	categoryRepo domainrepo.CategoryRepository
-	minioStorage *storage.MinIOStorage
-	cfg          helper.Config
+	gameRepo       domainrepo.GameRepository
+	userRepo       domainrepo.UserRepository
+	categoryRepo   domainrepo.CategoryRepository
+	difficultyRepo domainrepo.DifficultyRepository
+	minioStorage   *storage.MinIOStorage
+	cfg            helper.Config
 }
 
 func NewGameService(
 	gameRepo domainrepo.GameRepository,
 	userRepo domainrepo.UserRepository,
 	categoryRepo domainrepo.CategoryRepository,
+	difficultyRepo domainrepo.DifficultyRepository,
 	minioStorage *storage.MinIOStorage,
 	cfg helper.Config,
 ) *GameService {
 	return &GameService{
-		gameRepo:     gameRepo,
-		userRepo:     userRepo,
-		categoryRepo: categoryRepo,
-		minioStorage: minioStorage,
-		cfg:          cfg,
+		gameRepo:       gameRepo,
+		userRepo:       userRepo,
+		categoryRepo:   categoryRepo,
+		difficultyRepo: difficultyRepo,
+		minioStorage:   minioStorage,
+		cfg:            cfg,
 	}
 }
 
-func (s *GameService) UploadGame(developerID uint, title string, description string, categoryIDs []uint, fileHeader *multipart.FileHeader, thumbnailHeader *multipart.FileHeader) (*models.Game, error) {
+func (s *GameService) UploadGame(developerID uint, title string, description string, categoryIDs []uint, difficultyID uint, fileHeader *multipart.FileHeader, thumbnailHeader *multipart.FileHeader) (*models.Game, error) {
 	developer, err := s.userRepo.FindByID(developerID)
 	if err != nil {
 		return nil, err
@@ -60,6 +63,10 @@ func (s *GameService) UploadGame(developerID uint, title string, description str
 	}
 
 	categories, err := s.resolveCategories(categoryIDs)
+	if err != nil {
+		return nil, err
+	}
+	difficulty, err := s.resolveDifficulty(difficultyID)
 	if err != nil {
 		return nil, err
 	}
@@ -117,6 +124,8 @@ func (s *GameService) UploadGame(developerID uint, title string, description str
 		FileURL:       objectPrefix,
 		ThumbnailPath: thumbnailPath,
 		DeveloperID:   developerID,
+		DifficultyID:  difficulty.ID,
+		Difficulty:    *difficulty,
 		Status:        "pending",
 		Categories:    categories,
 	}
@@ -127,7 +136,7 @@ func (s *GameService) UploadGame(developerID uint, title string, description str
 	return s.gameRepo.FindByID(game.ID)
 }
 
-func (s *GameService) UpdateGame(gameID uint, actor *models.User, title string, description string, categoryIDs []uint, fileHeader *multipart.FileHeader, thumbnailHeader *multipart.FileHeader) (*models.Game, error) {
+func (s *GameService) UpdateGame(gameID uint, actor *models.User, title string, description string, categoryIDs []uint, difficultyID *uint, fileHeader *multipart.FileHeader, thumbnailHeader *multipart.FileHeader) (*models.Game, error) {
 	game, err := s.gameRepo.FindByID(gameID)
 	if err != nil {
 		return nil, err
@@ -151,6 +160,14 @@ func (s *GameService) UpdateGame(gameID uint, actor *models.User, title string, 
 			return nil, err
 		}
 		game.Categories = categories
+	}
+	if difficultyID != nil {
+		difficulty, err := s.resolveDifficulty(*difficultyID)
+		if err != nil {
+			return nil, err
+		}
+		game.DifficultyID = difficulty.ID
+		game.Difficulty = *difficulty
 	}
 	if fileHeader != nil {
 		if err := s.replaceGameArchive(game, fileHeader); err != nil {
@@ -235,6 +252,10 @@ func (s *GameService) RejectGame(id uint) error {
 
 func (s *GameService) ListCategories() ([]models.Category, error) {
 	return s.categoryRepo.ListAll()
+}
+
+func (s *GameService) ListDifficulties() ([]models.Difficulty, error) {
+	return s.difficultyRepo.ListAll()
 }
 
 func (s *GameService) CreateCategory(name string) (*models.Category, error) {
@@ -378,6 +399,22 @@ func (s *GameService) resolveCategories(categoryIDs []uint) ([]models.Category, 
 	}
 
 	return categories, nil
+}
+
+func (s *GameService) resolveDifficulty(difficultyID uint) (*models.Difficulty, error) {
+	if difficultyID == 0 {
+		return nil, errors.New("invalid difficulty id")
+	}
+
+	difficulty, err := s.difficultyRepo.FindByID(difficultyID)
+	if err != nil {
+		return nil, err
+	}
+	if difficulty == nil {
+		return nil, fmt.Errorf("difficulty %d not found", difficultyID)
+	}
+
+	return difficulty, nil
 }
 
 func (s *GameService) replaceGameArchive(game *models.Game, fileHeader *multipart.FileHeader) error {

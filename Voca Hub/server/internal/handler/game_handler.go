@@ -49,7 +49,7 @@ func (h *GameHandler) UploadGame(c *gin.Context) {
 	if gin.Mode() == gin.DebugMode {
 		log.Printf("upload requested by user id=%d clerk_id=%s role=%s", user.ID, user.ClerkID, user.Role)
 	}
-	game, err := h.gameService.UploadGame(user.ID, req.Title, req.Description, req.CategoryIDs, file, thumbnail)
+	game, err := h.gameService.UploadGame(user.ID, req.Title, req.Description, req.CategoryIDs, req.DifficultyID, file, thumbnail)
 	if err != nil {
 		helper.Error(c, http.StatusBadRequest, err.Error())
 		return
@@ -80,7 +80,7 @@ func (h *GameHandler) UpdateGame(c *gin.Context) {
 	}
 
 	user := helper.MustCurrentUser(c)
-	game, err := h.gameService.UpdateGame(uint(id), user, req.Title, req.Description, req.CategoryIDs, file, thumbnail)
+	game, err := h.gameService.UpdateGame(uint(id), user, req.Title, req.Description, req.CategoryIDs, req.DifficultyID, file, thumbnail)
 	if err != nil {
 		status := http.StatusBadRequest
 		if err.Error() == "game not found" {
@@ -371,6 +371,15 @@ func (h *GameHandler) ListCategories(c *gin.Context) {
 	helper.Success(c, http.StatusOK, "categories fetched", helper.WrapListIfNeeded(categories))
 }
 
+func (h *GameHandler) ListDifficulties(c *gin.Context) {
+	difficulties, err := h.gameService.ListDifficulties()
+	if err != nil {
+		helper.Error(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	helper.Success(c, http.StatusOK, "difficulties fetched", helper.WrapListIfNeeded(difficulties))
+}
+
 func (h *GameHandler) CreateCategory(c *gin.Context) {
 	var req struct {
 		Name string `json:"name" binding:"required"`
@@ -443,6 +452,7 @@ type gameResponse struct {
 	Status       string            `json:"status"`
 	CreatedAt    string            `json:"upload_at"`
 	Developer    models.User       `json:"developer"`
+	Difficulty   models.Difficulty `json:"difficulty"`
 	Categories   []models.Category `json:"categories"`
 }
 
@@ -465,6 +475,7 @@ func presentGame(game *models.Game, gameService *service.GameService) gameRespon
 		Status:       game.Status,
 		CreatedAt:    game.CreatedAt.Format(time.RFC3339),
 		Developer:    game.Developer,
+		Difficulty:   game.Difficulty,
 		Categories:   game.Categories,
 	}
 }

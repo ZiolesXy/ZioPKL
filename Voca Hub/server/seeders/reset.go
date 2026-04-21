@@ -27,6 +27,12 @@ var resetDefaultCategories = []string{
 	"Strategy",
 }
 
+var resetDefaultDifficulties = []string{
+	"Mudah",
+	"Sedang",
+	"Sulit",
+}
+
 func main() {
 	cfg := helper.LoadConfig()
 	db, err := database.NewPostgres(cfg)
@@ -45,6 +51,7 @@ func main() {
 		&models.Post{},
 		&models.Category{},
 		&models.Game{},
+		&models.Difficulty{},
 		&models.Message{},
 		&models.Friend{},
 		&models.User{},
@@ -56,6 +63,7 @@ func main() {
 		&models.User{},
 		&models.Friend{},
 		&models.Message{},
+		&models.Difficulty{},
 		&models.Game{},
 		&models.Category{},
 		&models.Post{},
@@ -109,6 +117,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	difficulties, err := resetEnsureDifficulties(db)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	developerID, err := resetResolveSeederDeveloperID(db)
 	if err != nil {
@@ -153,8 +165,10 @@ func main() {
 				}
 				return ""
 			}(),
-			DeveloperID: developerID,
-			Status:      "approved",
+			DeveloperID:  developerID,
+			DifficultyID: difficulties[index%len(difficulties)].ID,
+			Difficulty:   difficulties[index%len(difficulties)],
+			Status:       "approved",
 			Categories: []models.Category{
 				categories[index%len(categories)],
 				categories[(index+1)%len(categories)],
@@ -183,6 +197,27 @@ func resetEnsureCategories(db *gorm.DB) ([]models.Category, error) {
 		return nil, errors.New("at least 5 categories are required")
 	}
 	return categories, nil
+}
+
+func resetEnsureDifficulties(db *gorm.DB) ([]models.Difficulty, error) {
+	for index, name := range resetDefaultDifficulties {
+		difficulty := models.Difficulty{
+			ID:   uint(index + 1),
+			Name: name,
+		}
+		if err := db.Where("id = ?", difficulty.ID).Assign(models.Difficulty{Name: difficulty.Name}).FirstOrCreate(&difficulty).Error; err != nil {
+			return nil, err
+		}
+	}
+
+	var difficulties []models.Difficulty
+	if err := db.Order("id asc").Find(&difficulties).Error; err != nil {
+		return nil, err
+	}
+	if len(difficulties) != len(resetDefaultDifficulties) {
+		return nil, errors.New("exactly 3 difficulties are required")
+	}
+	return difficulties, nil
 }
 
 func resetResolveSeederDeveloperID(db *gorm.DB) (uint, error) {

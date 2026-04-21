@@ -9,8 +9,10 @@ type Game struct {
 	FileURL       string     `gorm:"size:500;not null" json:"file_url"`
 	ThumbnailPath string     `gorm:"size:500" json:"-"`
 	DeveloperID   uint       `gorm:"not null;index" json:"developer_id"`
+	DifficultyID  uint       `gorm:"not null;index" json:"difficulty_id"`
 	Status        string     `gorm:"size:50;not null;default:pending" json:"status"`
 	CreatedAt     time.Time  `json:"upload_at"`
 	Developer     User       `gorm:"foreignKey:DeveloperID" json:"developer"`
+	Difficulty    Difficulty `gorm:"foreignKey:DifficultyID" json:"difficulty"`
 	Categories    []Category `gorm:"many2many:game_categories;" json:"categories"`
 }

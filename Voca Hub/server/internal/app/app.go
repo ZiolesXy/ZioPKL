@@ -55,12 +55,13 @@ func New() (*App, error) {
 	messageRepo := repository.NewMessageRepository(db)
 	gameRepo := repository.NewGameRepository(db)
 	categoryRepo := repository.NewCategoryRepository(db)
+	difficultyRepo := repository.NewDifficultyRepository(db)
 	postRepo := repository.NewPostRepository(db)
 
 	userService := service.NewUserService(userRepo, clerkClient)
 	friendService := service.NewFriendService(friendRepo, userRepo)
 	chatService := service.NewChatService(messageRepo, userRepo)
-	gameService := service.NewGameService(gameRepo, userRepo, categoryRepo, minioClient, cfg)
+	gameService := service.NewGameService(gameRepo, userRepo, categoryRepo, difficultyRepo, minioClient, cfg)
 	postService := service.NewPostService(postRepo)
 	adminService := service.NewAdminService(userRepo, gameRepo, redisClient)
 
@@ -131,6 +132,11 @@ func New() (*App, error) {
 			categories.POST("", gameHandler.CreateCategory)
 			categories.PUT("/:id", gameHandler.UpdateCategory)
 			categories.DELETE("/:id", gameHandler.DeleteCategory)
+		}
+
+		difficulties := api.Group("/difficulties")
+		{
+			difficulties.GET("", gameHandler.ListDifficulties)
 		}
 
 		posts := api.Group("/posts")

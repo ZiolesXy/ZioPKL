@@ -20,6 +20,7 @@ func main() {
 		&models.Post{},
 		&models.Category{},
 		&models.Game{},
+		&models.Difficulty{},
 		&models.Message{},
 		&models.Friend{},
 		&models.User{},

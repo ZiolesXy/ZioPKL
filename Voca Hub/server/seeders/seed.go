@@ -1,12 +1,21 @@
 package main
 
 import (
+	"errors"
 	"log"
+
+	"gorm.io/gorm"
 
 	"server/internal/database"
 	"server/internal/domain/models"
 	"server/internal/helper"
 )
+
+var seedDefaultDifficulties = []string{
+	"Mudah",
+	"Sedang",
+	"Sulit",
+}
 
 func main() {
 	cfg := helper.LoadConfig()
@@ -15,6 +24,13 @@ func main() {
 		log.Fatal(err)
 	}
 	clerkClient := helper.NewClerkClient(cfg)
+
+	if err := db.AutoMigrate(
+		&models.User{},
+		&models.Difficulty{},
+	); err != nil {
+		log.Fatal(err)
+	}
 
 	users := []struct {
 		Email string
@@ -50,4 +66,29 @@ func main() {
 			log.Fatal(err)
 		}
 	}
+
+	if _, err := seedEnsureDifficulties(db); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func seedEnsureDifficulties(db *gorm.DB) ([]models.Difficulty, error) {
+	for index, name := range seedDefaultDifficulties {
+		difficulty := models.Difficulty{
+			ID:   uint(index + 1),
+			Name: name,
+		}
+		if err := db.Where("id = ?", difficulty.ID).Assign(models.Difficulty{Name: difficulty.Name}).FirstOrCreate(&difficulty).Error; err != nil {
+			return nil, err
+		}
+	}
+
+	var difficulties []models.Difficulty
+	if err := db.Order("id asc").Find(&difficulties).Error; err != nil {
+		return nil, err
+	}
+	if len(difficulties) != len(seedDefaultDifficulties) {
+		return nil, errors.New("exactly 3 difficulties are required")
+	}
+	return difficulties, nil
 }

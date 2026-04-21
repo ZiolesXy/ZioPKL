@@ -19,6 +19,7 @@ func main() {
 		&models.User{},
 		&models.Friend{},
 		&models.Message{},
+		&models.Difficulty{},
 		&models.Game{},
 		&models.Category{},
 		&models.Post{},

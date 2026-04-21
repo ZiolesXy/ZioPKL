@@ -27,6 +27,12 @@ var defaultCategories = []string{
 	"Strategy",
 }
 
+var defaultDifficulties = []string{
+	"Mudah",
+	"Sedang",
+	"Sulit",
+}
+
 func main() {
 	cfg := helper.LoadConfig()
 
@@ -44,6 +50,7 @@ func main() {
 		&models.User{},
 		&models.Friend{},
 		&models.Message{},
+		&models.Difficulty{},
 		&models.Game{},
 		&models.Category{},
 		&models.Post{},
@@ -60,8 +67,15 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	difficulties, err := ensureDifficulties(db)
+	if err != nil {
+		log.Fatal(err)
+	}
 	if len(categories) < 5 {
 		log.Fatal("at least 5 categories are required")
+	}
+	if len(difficulties) != len(defaultDifficulties) {
+		log.Fatal("exactly 3 difficulties are required")
 	}
 
 	gameDir, err := resolveGameSeedDir()
@@ -107,9 +121,11 @@ func main() {
 				}
 				return ""
 			}(),
-			DeveloperID: developerID,
-			Status:      "approved",
-			Categories:  selectedCategories,
+			DeveloperID:  developerID,
+			DifficultyID: difficulties[index%len(difficulties)].ID,
+			Difficulty:   difficulties[index%len(difficulties)],
+			Status:       "approved",
+			Categories:   selectedCategories,
 		}
 
 		if err := db.Where("developer_id = ? AND title = ?", developerID, title).Assign(game).FirstOrCreate(&game).Error; err != nil {
@@ -133,6 +149,24 @@ func ensureCategories(db *gorm.DB) ([]models.Category, error) {
 		return nil, err
 	}
 	return categories, nil
+}
+
+func ensureDifficulties(db *gorm.DB) ([]models.Difficulty, error) {
+	for index, name := range defaultDifficulties {
+		difficulty := models.Difficulty{
+			ID:   uint(index + 1),
+			Name: name,
+		}
+		if err := db.Where("id = ?", difficulty.ID).Assign(models.Difficulty{Name: difficulty.Name}).FirstOrCreate(&difficulty).Error; err != nil {
+			return nil, err
+		}
+	}
+
+	var difficulties []models.Difficulty
+	if err := db.Order("id asc").Find(&difficulties).Error; err != nil {
+		return nil, err
+	}
+	return difficulties, nil
 }
 
 func resolveSeederDeveloperID(db *gorm.DB) (uint, error) {
