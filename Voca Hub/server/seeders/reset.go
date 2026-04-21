@@ -58,11 +58,21 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
+		username, err := clerkClient.FetchUsername(clerkID)
+		if err != nil {
+			log.Fatal(err)
+		}
 
 		record := models.User{
 			ClerkID: clerkID,
 			Email:   user.Email,
-			Role:    user.Role,
+			Username: func() *string {
+				if username == "" {
+					return nil
+				}
+				return &username
+			}(),
+			Role: user.Role,
 		}
 		if err := db.Where("clerk_id = ?", clerkID).Assign(record).FirstOrCreate(&record).Error; err != nil {
 			log.Fatal(err)

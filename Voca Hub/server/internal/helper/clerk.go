@@ -71,6 +71,16 @@ type ClerkClient struct {
 	httpClient *http.Client
 }
 
+type ClerkUserProfile struct {
+	ID                    string `json:"id"`
+	Username              string `json:"username"`
+	PrimaryEmailAddressID string `json:"primary_email_address_id"`
+	EmailAddresses        []struct {
+		ID           string `json:"id"`
+		EmailAddress string `json:"email_address"`
+	} `json:"email_addresses"`
+}
+
 func LoadConfig() Config {
 	_ = godotenv.Load()
 
@@ -150,17 +160,51 @@ func (v *ClerkVerifier) VerifyToken(tokenString string) (*ClerkClaims, error) {
 }
 
 func (c *ClerkClient) FetchPrimaryEmail(clerkUserID string) (string, error) {
+	profile, err := c.FetchUserProfile(clerkUserID)
+	if err != nil {
+		return "", err
+	}
+	if profile == nil {
+		return "", nil
+	}
+
+	for _, item := range profile.EmailAddresses {
+		if item.ID == profile.PrimaryEmailAddressID && strings.TrimSpace(item.EmailAddress) != "" {
+			return strings.TrimSpace(item.EmailAddress), nil
+		}
+	}
+	for _, item := range profile.EmailAddresses {
+		if strings.TrimSpace(item.EmailAddress) != "" {
+			return strings.TrimSpace(item.EmailAddress), nil
+		}
+	}
+
+	return "", nil
+}
+
+func (c *ClerkClient) FetchUsername(clerkUserID string) (string, error) {
+	profile, err := c.FetchUserProfile(clerkUserID)
+	if err != nil {
+		return "", err
+	}
+	if profile == nil {
+		return "", nil
+	}
+	return strings.TrimSpace(profile.Username), nil
+}
+
+func (c *ClerkClient) FetchUserProfile(clerkUserID string) (*ClerkUserProfile, error) {
 	if strings.TrimSpace(clerkUserID) == "" {
-		return "", errors.New("missing clerk user id")
+		return nil, errors.New("missing clerk user id")
 	}
 	if c == nil || c.secretKey == "" {
-		return "", nil
+		return nil, nil
 	}
 
 	endpoint := fmt.Sprintf("%s/v1/users/%s", c.baseURL, url.PathEscape(clerkUserID))
 	req, err := http.NewRequest(http.MethodGet, endpoint, nil)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	req.Header.Set("Authorization", "Bearer "+c.secretKey)
@@ -168,40 +212,23 @@ func (c *ClerkClient) FetchPrimaryEmail(clerkUserID string) (string, error) {
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return "", nil
+		return nil, nil
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return "", fmt.Errorf("clerk api returned status %d", resp.StatusCode)
+		return nil, fmt.Errorf("clerk api returned status %d", resp.StatusCode)
 	}
 
-	var payload struct {
-		PrimaryEmailAddressID string `json:"primary_email_address_id"`
-		EmailAddresses        []struct {
-			ID           string `json:"id"`
-			EmailAddress string `json:"email_address"`
-		} `json:"email_addresses"`
-	}
+	var payload ClerkUserProfile
 	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
-		return "", err
+		return nil, err
 	}
 
-	for _, item := range payload.EmailAddresses {
-		if item.ID == payload.PrimaryEmailAddressID && strings.TrimSpace(item.EmailAddress) != "" {
-			return strings.TrimSpace(item.EmailAddress), nil
-		}
-	}
-	for _, item := range payload.EmailAddresses {
-		if strings.TrimSpace(item.EmailAddress) != "" {
-			return strings.TrimSpace(item.EmailAddress), nil
-		}
-	}
-
-	return "", nil
+	return &payload, nil
 }
 
 func (c *ClerkClient) FetchUserIDByEmail(email string) (string, error) {

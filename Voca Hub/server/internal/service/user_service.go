@@ -9,13 +9,13 @@ import (
 )
 
 type UserService struct {
-	userRepo     domainrepo.UserRepository
+	userRepo    domainrepo.UserRepository
 	clerkClient *helper.ClerkClient
 }
 
 func NewUserService(userRepo domainrepo.UserRepository, clerkClient *helper.ClerkClient) *UserService {
 	return &UserService{
-		userRepo:     userRepo,
+		userRepo:    userRepo,
 		clerkClient: clerkClient,
 	}
 }
@@ -25,14 +25,29 @@ func (s *UserService) SyncUser(claims helper.ClerkClaims) (*models.User, error) 
 	if err != nil {
 		return nil, err
 	}
+	username, err := s.resolveUsername(claims)
+	if err != nil {
+		return nil, err
+	}
 
 	user, err := s.userRepo.FindByClerkID(claims.ClerkID)
 	if err != nil {
 		return nil, err
 	}
 	if user != nil {
+		shouldSave := false
 		if strings.TrimSpace(user.Email) == "" && email != "" {
 			user.Email = email
+			shouldSave = true
+		}
+		if username != "" && (user.Username == nil || strings.TrimSpace(*user.Username) == "") {
+			user.Username = &username
+			shouldSave = true
+		}
+		if shouldSave {
+			if err := s.userRepo.Save(user); err != nil {
+				return nil, err
+			}
 		}
 		return user, nil
 	}
@@ -40,7 +55,13 @@ func (s *UserService) SyncUser(claims helper.ClerkClaims) (*models.User, error) 
 	newUser := &models.User{
 		ClerkID: claims.ClerkID,
 		Email:   email,
-		Role:    "USER",
+		Username: func() *string {
+			if username == "" {
+				return nil
+			}
+			return &username
+		}(),
+		Role: "USER",
 	}
 	if err := s.userRepo.Create(newUser); err != nil {
 		return nil, err
@@ -60,4 +81,11 @@ func (s *UserService) resolveEmail(claims helper.ClerkClaims) (string, error) {
 		return "", nil
 	}
 	return s.clerkClient.FetchPrimaryEmail(claims.ClerkID)
+}
+
+func (s *UserService) resolveUsername(claims helper.ClerkClaims) (string, error) {
+	if s.clerkClient == nil {
+		return "", nil
+	}
+	return s.clerkClient.FetchUsername(claims.ClerkID)
 }

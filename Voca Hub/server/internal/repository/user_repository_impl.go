@@ -45,6 +45,10 @@ func (r *userRepository) Create(user *models.User) error {
 	return r.db.Create(user).Error
 }
 
+func (r *userRepository) Save(user *models.User) error {
+	return r.db.Save(user).Error
+}
+
 func (r *userRepository) List() ([]models.User, error) {
 	var users []models.User
 	err := r.db.Order("created_at desc").Find(&users).Error
