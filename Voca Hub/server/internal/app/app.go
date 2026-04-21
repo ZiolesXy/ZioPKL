@@ -83,6 +83,9 @@ func New() (*App, error) {
 	roleMiddleware := middleware.NewRoleMiddleware()
 
 	router.Use(corsMiddleware.Handle())
+	router.GET("", func(c *gin.Context) {
+		helper.Success(c, http.StatusOK, "welcome to Voca Hub API", nil)
+	})
 
 	router.GET("/health", func(c *gin.Context) {
 		helper.Success(c, http.StatusOK, "ok", gin.H{
@@ -94,13 +97,29 @@ func New() (*App, error) {
 	router.GET("/play/:id/*filepath", gameHandler.ServeGameFile)
 	router.GET("/games/thumbnail/*filepath", gameHandler.ServeThumbnail)
 
+	router.GET("/categories", gameHandler.ListCategories)
+
 	difficulties := router.Group("/difficulties")
 	{
 		difficulties.GET("", gameHandler.ListDifficulties)
 	}
 
 	router.GET("/games", gameHandler.ListApprovedGames)
-	router.NoRoute(gameHandler.ServeRootAssetFallback)
+
+	router.NoRoute(func(c *gin.Context) {
+		if strings.HasPrefix(c.Request.URL.Path, "/api") {
+			helper.Error(c, http.StatusNotFound, "endpoint tidak ditemukan")
+			return
+		}
+
+		if strings.HasPrefix(c.Request.URL.Path, "/play") {
+			gameHandler.ServeRootAssetFallback(c)
+			return
+		}
+
+		// Fallback default jika tidak cocok keduanya
+		helper.Error(c, http.StatusNotFound, "endpoint tidak ditemukan")
+	})
 
 	api := router.Group("/api")
 	api.Use(authMiddleware.Handle())
@@ -133,7 +152,6 @@ func New() (*App, error) {
 
 		categories := api.Group("/categories")
 		{
-			categories.GET("", gameHandler.ListCategories)
 			categories.Use(roleMiddleware.Require("ADMIN"))
 			categories.POST("", gameHandler.CreateCategory)
 			categories.PUT("/:id", gameHandler.UpdateCategory)
