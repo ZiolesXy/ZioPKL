@@ -69,5 +69,5 @@ func (h *FriendHandler) ListFriends(c *gin.Context) {
 		helper.Error(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	helper.Success(c, http.StatusOK, "friends fetched", friends)
+	helper.Success(c, http.StatusOK, "friends fetched", helper.WrapListIfNeeded(friends))
 }

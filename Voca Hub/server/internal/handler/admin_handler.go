@@ -37,7 +37,7 @@ func (h *AdminHandler) ListUsers(c *gin.Context) {
 		helper.Error(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	helper.Success(c, http.StatusOK, "users fetched", users)
+	helper.Success(c, http.StatusOK, "users fetched", helper.WrapListIfNeeded(users))
 }
 
 func (h *AdminHandler) ListGames(c *gin.Context) {
@@ -46,7 +46,7 @@ func (h *AdminHandler) ListGames(c *gin.Context) {
 		helper.Error(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	helper.Success(c, http.StatusOK, "games fetched", games)
+	helper.Success(c, http.StatusOK, "games fetched", helper.WrapListIfNeeded(games))
 }
 
 func (h *AdminHandler) ApproveGame(c *gin.Context) {

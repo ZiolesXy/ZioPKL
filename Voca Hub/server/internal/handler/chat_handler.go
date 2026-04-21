@@ -30,5 +30,5 @@ func (h *ChatHandler) GetHistory(c *gin.Context) {
 		helper.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	helper.Success(c, http.StatusOK, "chat history fetched", history)
+	helper.Success(c, http.StatusOK, "chat history fetched", helper.WrapListIfNeeded(history))
 }

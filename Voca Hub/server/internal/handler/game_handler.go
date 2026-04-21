@@ -45,7 +45,7 @@ func (h *GameHandler) UploadGame(c *gin.Context) {
 		helper.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	helper.Success(c, http.StatusCreated, "game uploaded", game)
+	helper.Success(c, http.StatusCreated, "game uploaded",  helper.WrapListIfNeeded(game))
 }
 
 func (h *GameHandler) ListApprovedGames(c *gin.Context) {
@@ -54,7 +54,7 @@ func (h *GameHandler) ListApprovedGames(c *gin.Context) {
 		helper.Error(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	helper.Success(c, http.StatusOK, "approved games fetched", games)
+	helper.Success(c, http.StatusOK, "approved games fetched", helper.WrapListIfNeeded(games))
 }
 
 func (h *GameHandler) GetApprovedGame(c *gin.Context) {
@@ -68,7 +68,7 @@ func (h *GameHandler) GetApprovedGame(c *gin.Context) {
 		helper.Error(c, http.StatusNotFound, err.Error())
 		return
 	}
-	helper.Success(c, http.StatusOK, "game fetched", game)
+	helper.Success(c, http.StatusOK, "game fetched", helper.WrapListIfNeeded(game))
 }
 
 func (h *GameHandler) PlayGame(c *gin.Context) {
