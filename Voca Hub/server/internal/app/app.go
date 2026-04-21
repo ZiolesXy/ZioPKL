@@ -93,6 +93,12 @@ func New() (*App, error) {
 	router.GET("/play/:id", gameHandler.ServeGameFile)
 	router.GET("/play/:id/*filepath", gameHandler.ServeGameFile)
 	router.GET("/games/thumbnail/*filepath", gameHandler.ServeThumbnail)
+
+	difficulties := router.Group("/difficulties")
+	{
+		difficulties.GET("", gameHandler.ListDifficulties)
+	}
+
 	router.GET("/games", gameHandler.ListApprovedGames)
 	router.NoRoute(gameHandler.ServeRootAssetFallback)
 
@@ -132,11 +138,6 @@ func New() (*App, error) {
 			categories.POST("", gameHandler.CreateCategory)
 			categories.PUT("/:id", gameHandler.UpdateCategory)
 			categories.DELETE("/:id", gameHandler.DeleteCategory)
-		}
-
-		difficulties := api.Group("/difficulties")
-		{
-			difficulties.GET("", gameHandler.ListDifficulties)
 		}
 
 		posts := api.Group("/posts")
