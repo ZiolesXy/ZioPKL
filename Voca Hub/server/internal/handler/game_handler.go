@@ -6,6 +6,7 @@ import (
 	"mime"
 	"net/http"
 	"net/url"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -102,7 +103,7 @@ func (h *GameHandler) PlayGame(c *gin.Context) {
 func (h *GameHandler) ServeGameFile(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
 	if err != nil {
-		c.AbortWithStatus(http.StatusBadRequest)
+		h.servePlayAssetFallback(c)
 		return
 	}
 
@@ -130,6 +131,34 @@ func (h *GameHandler) ServeGameFile(c *gin.Context) {
 		c.Data(http.StatusOK, contentType, []byte(injectBaseHref(string(body), buildPlayBaseHref(uint(id)))))
 		return
 	}
+
+	if _, err := io.Copy(c.Writer, reader); err != nil {
+		c.Status(http.StatusInternalServerError)
+	}
+}
+
+func (h *GameHandler) servePlayAssetFallback(c *gin.Context) {
+	refererGameID, ok := gameIDFromReferer(c.GetHeader("Referer"))
+	if !ok {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	// Requests like /play/Assets/img.png come from resolving ../Assets/img.png
+	// against <base href="/play/:id/">. Rebuild the intended in-game asset path.
+	filePath := strings.TrimPrefix(path.Join(c.Param("id"), c.Param("filepath")), "/")
+	reader, contentType, err := h.gameService.OpenGameAsset(refererGameID, filePath)
+	if err != nil {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+	defer reader.Close()
+
+	contentType = detectContentType(filePath, contentType)
+	if contentType != "" {
+		c.Header("Content-Type", contentType)
+	}
+	c.Header("Cache-Control", "no-store")
 
 	if _, err := io.Copy(c.Writer, reader); err != nil {
 		c.Status(http.StatusInternalServerError)

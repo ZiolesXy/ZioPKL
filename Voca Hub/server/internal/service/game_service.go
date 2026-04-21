@@ -7,7 +7,9 @@ import (
 	"io"
 	"mime/multipart"
 	"os"
+	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"server/internal/domain/models"
@@ -84,6 +86,9 @@ func (s *GameService) UploadGame(developerID uint, title string, description str
 	}
 	if !hasRootIndexHTML(extractDir) {
 		return nil, errors.New("zip must contain index.html in root")
+	}
+	if err := normalizeExtractedAssetPaths(extractDir); err != nil {
+		return nil, err
 	}
 
 	objectPrefix := fmt.Sprintf("%d/%s", developerID, helper.Slugify(title))
@@ -200,4 +205,118 @@ func (s *GameService) OpenGameAsset(id uint, assetPath string) (io.ReadCloser, s
 func hasRootIndexHTML(dir string) bool {
 	info, err := os.Stat(filepath.Join(dir, "index.html"))
 	return err == nil && !info.IsDir()
+}
+
+var cssURLPattern = regexp.MustCompile(`url\(\s*[^)\s]+\s*\)`)
+
+func normalizeExtractedAssetPaths(root string) error {
+	return filepath.Walk(root, func(filePath string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() || !isNormalizableTextAsset(filePath) {
+			return nil
+		}
+
+		content, err := os.ReadFile(filePath)
+		if err != nil {
+			return err
+		}
+		if strings.IndexByte(string(content), 0) >= 0 {
+			return nil
+		}
+
+		updated := normalizeQuotedAssetPaths(string(content), '\'')
+		updated = normalizeQuotedAssetPaths(updated, '"')
+		updated = normalizeQuotedAssetPaths(updated, '`')
+		updated = normalizeCSSURLAssetPaths(updated)
+
+		if updated == string(content) {
+			return nil
+		}
+
+		return os.WriteFile(filePath, []byte(updated), info.Mode())
+	})
+}
+
+func isNormalizableTextAsset(filePath string) bool {
+	switch strings.ToLower(filepath.Ext(filePath)) {
+	case ".html", ".htm", ".css", ".js", ".mjs":
+		return true
+	default:
+		return false
+	}
+}
+
+func normalizeQuotedAssetPaths(content string, quote rune) string {
+	pattern := regexp.MustCompile(regexp.QuoteMeta(string(quote)) + `((?:\./|\.\./)+[^` + regexp.QuoteMeta(string(quote)) + "\r\n]+)" + regexp.QuoteMeta(string(quote)))
+
+	return pattern.ReplaceAllStringFunc(content, func(match string) string {
+		rawPath := match[1 : len(match)-1]
+		normalized, ok := normalizeAssetReference(rawPath)
+		if !ok {
+			return match
+		}
+		return string(quote) + normalized + string(quote)
+	})
+}
+
+func normalizeCSSURLAssetPaths(content string) string {
+	return cssURLPattern.ReplaceAllStringFunc(content, func(match string) string {
+		inner := strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(match, "url("), ")"))
+		if inner == "" {
+			return match
+		}
+
+		quote := ""
+		rawPath := inner
+		if strings.HasPrefix(inner, "\"") && strings.HasSuffix(inner, "\"") && len(inner) >= 2 {
+			quote = `"`
+			rawPath = inner[1 : len(inner)-1]
+		} else if strings.HasPrefix(inner, "'") && strings.HasSuffix(inner, "'") && len(inner) >= 2 {
+			quote = "'"
+			rawPath = inner[1 : len(inner)-1]
+		}
+
+		normalized, ok := normalizeAssetReference(rawPath)
+		if !ok {
+			return match
+		}
+
+		return "url(" + quote + normalized + quote + ")"
+	})
+}
+
+func normalizeAssetReference(value string) (string, bool) {
+	raw := strings.TrimSpace(value)
+	if !strings.HasPrefix(raw, "./") && !strings.HasPrefix(raw, "../") {
+		return "", false
+	}
+	if !hasNormalizableAssetExtension(raw) {
+		return "", false
+	}
+
+	cleaned := strings.TrimPrefix(path.Clean("/"+raw), "/")
+	if cleaned == "" || cleaned == "." {
+		return "", false
+	}
+
+	return cleaned, true
+}
+
+func hasNormalizableAssetExtension(value string) bool {
+	trimmed := strings.ToLower(strings.TrimSpace(value))
+	trimmed = strings.Split(trimmed, "?")[0]
+	trimmed = strings.Split(trimmed, "#")[0]
+
+	switch path.Ext(trimmed) {
+	case ".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".ico", ".bmp",
+		".mp3", ".wav", ".ogg", ".m4a",
+		".mp4", ".webm",
+		".woff", ".woff2", ".ttf", ".otf", ".eot",
+		".json", ".txt":
+		return true
+	default:
+		return false
+	}
 }
