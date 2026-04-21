@@ -421,7 +421,7 @@ type gameResponse struct {
 	ThumbnailURL string            `json:"thumbnail_url"`
 	DeveloperID  uint              `json:"developer_id"`
 	Status       string            `json:"status"`
-	CreatedAt    string            `json:"created_at"`
+	CreatedAt    string            `json:"upload_at"`
 	Developer    models.User       `json:"developer"`
 	Categories   []models.Category `json:"categories"`
 }

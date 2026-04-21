@@ -18,7 +18,7 @@ import (
 	"server/internal/storage"
 )
 
-var resetDefaultCategories = []string{
+var defaultCategories = []string{
 	"Action",
 	"Adventure",
 	"Arcade",
@@ -28,26 +28,14 @@ var resetDefaultCategories = []string{
 
 func main() {
 	cfg := helper.LoadConfig()
+
 	db, err := database.NewPostgres(cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
-	clerkClient := helper.NewClerkClient(cfg)
 
 	minioStorage, err := storage.NewMinIO(cfg)
 	if err != nil {
-		log.Fatal(err)
-	}
-
-	if err := db.Migrator().DropTable(
-		"game_categories",
-		&models.Post{},
-		&models.Category{},
-		&models.Game{},
-		&models.Message{},
-		&models.Friend{},
-		&models.User{},
-	); err != nil {
 		log.Fatal(err)
 	}
 
@@ -62,59 +50,20 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := minioStorage.ClearBucket(); err != nil {
-		log.Fatal(err)
-	}
-	if err := minioStorage.ClearThumbnailBucket(); err != nil {
-		log.Fatal(err)
-	}
-
-	users := []struct {
-		Email string
-		Role  string
-	}{
-		{Email: "eaglegaming3605@gmail.com", Role: "ADMIN"},
-		// {Email: "developer@example.com", Role: "DEVELOPER"},
-		{Email: "pashaprabasakti@gmail.com", Role: "USER"},
-	}
-
-	for _, user := range users {
-		clerkID, err := clerkClient.FetchUserIDByEmail(user.Email)
-		if err != nil {
-			log.Fatal(err)
-		}
-		username, err := clerkClient.FetchUsername(clerkID)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		record := models.User{
-			ClerkID: clerkID,
-			Email:   user.Email,
-			Username: func() *string {
-				if username == "" {
-					return nil
-				}
-				return &username
-			}(),
-			Role: user.Role,
-		}
-		if err := db.Where("clerk_id = ?", clerkID).Assign(record).FirstOrCreate(&record).Error; err != nil {
-			log.Fatal(err)
-		}
-	}
-
-	categories, err := resetEnsureCategories(db)
+	developerID, err := resolveSeederDeveloperID(db)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	developerID, err := resetResolveSeederDeveloperID(db)
+	categories, err := ensureCategories(db)
 	if err != nil {
 		log.Fatal(err)
 	}
+	if len(categories) < 5 {
+		log.Fatal("at least 5 categories are required")
+	}
 
-	gameDir, err := resetResolveGameSeedDir()
+	gameDir, err := resolveGameSeedDir()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -129,12 +78,17 @@ func main() {
 	slices.Sort(zipFiles)
 
 	for index, zipPath := range zipFiles {
-		title := resetTitleFromFilename(filepath.Base(zipPath))
+		title := titleFromFilename(filepath.Base(zipPath))
 		description := fmt.Sprintf("Placeholder description for %s.", title)
 
-		objectPrefix, err := resetUploadSeedGameArchive(minioStorage, developerID, title, zipPath)
+		objectPrefix, err := uploadSeedGameArchive(minioStorage, developerID, title, zipPath)
 		if err != nil {
 			log.Fatalf("failed seeding %s: %v", filepath.Base(zipPath), err)
+		}
+
+		selectedCategories := []models.Category{
+			categories[index%len(categories)],
+			categories[(index+1)%len(categories)],
 		}
 
 		game := models.Game{
@@ -143,20 +97,19 @@ func main() {
 			FileURL:     objectPrefix,
 			DeveloperID: developerID,
 			Status:      "approved",
-			Categories: []models.Category{
-				categories[index%len(categories)],
-				categories[(index+1)%len(categories)],
-			},
+			Categories:  selectedCategories,
 		}
 
 		if err := db.Where("developer_id = ? AND title = ?", developerID, title).Assign(game).FirstOrCreate(&game).Error; err != nil {
 			log.Fatalf("failed persisting game %s: %v", title, err)
 		}
+
+		log.Printf("seeded game: %s", title)
 	}
 }
 
-func resetEnsureCategories(db *gorm.DB) ([]models.Category, error) {
-	for _, name := range resetDefaultCategories {
+func ensureCategories(db *gorm.DB) ([]models.Category, error) {
+	for _, name := range defaultCategories {
 		category := models.Category{Name: name}
 		if err := db.Where("name = ?", name).FirstOrCreate(&category).Error; err != nil {
 			return nil, err
@@ -167,13 +120,10 @@ func resetEnsureCategories(db *gorm.DB) ([]models.Category, error) {
 	if err := db.Order("name asc").Find(&categories).Error; err != nil {
 		return nil, err
 	}
-	if len(categories) < 5 {
-		return nil, errors.New("at least 5 categories are required")
-	}
 	return categories, nil
 }
 
-func resetResolveSeederDeveloperID(db *gorm.DB) (uint, error) {
+func resolveSeederDeveloperID(db *gorm.DB) (uint, error) {
 	var user models.User
 
 	for _, role := range []string{"DEVELOPER", "ADMIN", "USER"} {
@@ -189,7 +139,7 @@ func resetResolveSeederDeveloperID(db *gorm.DB) (uint, error) {
 	return 0, errors.New("no users found; run user seeder first")
 }
 
-func resetResolveGameSeedDir() (string, error) {
+func resolveGameSeedDir() (string, error) {
 	candidates := []string{
 		filepath.Join("seeders", "games"),
 		filepath.Join("seeders", "Games"),
@@ -205,22 +155,22 @@ func resetResolveGameSeedDir() (string, error) {
 	return "", errors.New("game seed directory not found; expected seeders/games")
 }
 
-func resetTitleFromFilename(name string) string {
+func titleFromFilename(name string) string {
 	base := strings.TrimSuffix(name, filepath.Ext(name))
 	base = strings.ReplaceAll(base, "_", " ")
 	base = strings.ReplaceAll(base, "-", " ")
 	return strings.TrimSpace(strings.Join(strings.Fields(base), " "))
 }
 
-func resetUploadSeedGameArchive(minioStorage *storage.MinIOStorage, developerID uint, title string, zipPath string) (string, error) {
-	tempRoot, err := os.MkdirTemp("", "reset-game-*")
+func uploadSeedGameArchive(minioStorage *storage.MinIOStorage, developerID uint, title string, zipPath string) (string, error) {
+	tempRoot, err := os.MkdirTemp("", "seed-game-*")
 	if err != nil {
 		return "", err
 	}
 	defer os.RemoveAll(tempRoot)
 
 	extractDir := filepath.Join(tempRoot, "extracted")
-	if err := resetValidateAndExtractSeedArchive(zipPath, extractDir); err != nil {
+	if err := validateAndExtractSeedArchive(zipPath, extractDir); err != nil {
 		return "", err
 	}
 
@@ -232,7 +182,7 @@ func resetUploadSeedGameArchive(minioStorage *storage.MinIOStorage, developerID 
 	return objectPrefix, nil
 }
 
-func resetValidateAndExtractSeedArchive(zipPath string, extractDir string) error {
+func validateAndExtractSeedArchive(zipPath string, extractDir string) error {
 	reader, err := zip.OpenReader(zipPath)
 	if err != nil {
 		return errors.New("invalid zip file")

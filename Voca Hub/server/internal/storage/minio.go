@@ -164,12 +164,20 @@ func (s *MinIOStorage) CloseObject(object io.Closer) error {
 }
 
 func (s *MinIOStorage) ClearBucket() error {
+	return s.clearBucket(s.bucket)
+}
+
+func (s *MinIOStorage) ClearThumbnailBucket() error {
+	return s.clearBucket(s.thumbnailBucket)
+}
+
+func (s *MinIOStorage) clearBucket(bucket string) error {
 	ctx := context.Background()
-	objects := s.client.ListObjects(ctx, s.bucket, minio.ListObjectsOptions{
+	objects := s.client.ListObjects(ctx, bucket, minio.ListObjectsOptions{
 		Recursive: true,
 	})
 
-	for removeErr := range s.client.RemoveObjects(ctx, s.bucket, objects, minio.RemoveObjectsOptions{}) {
+	for removeErr := range s.client.RemoveObjects(ctx, bucket, objects, minio.RemoveObjectsOptions{}) {
 		if removeErr.Err != nil {
 			return removeErr.Err
 		}

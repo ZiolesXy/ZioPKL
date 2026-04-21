@@ -10,7 +10,7 @@ type Game struct {
 	ThumbnailPath string     `gorm:"size:500" json:"-"`
 	DeveloperID   uint       `gorm:"not null;index" json:"developer_id"`
 	Status        string     `gorm:"size:50;not null;default:pending" json:"status"`
-	CreatedAt     time.Time  `json:"created_at"`
+	CreatedAt     time.Time  `json:"upload_at"`
 	Developer     User       `gorm:"foreignKey:DeveloperID" json:"developer"`
 	Categories    []Category `gorm:"many2many:game_categories;" json:"categories"`
 }

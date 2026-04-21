@@ -10,6 +10,9 @@ migrate:
 seed:
 	go run ./seeders/seed.go
 
+seed-games:
+	go run ./seeders/seed_games.go
+
 drop:
 	go run ./seeders/drop.go
 

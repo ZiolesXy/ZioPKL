@@ -16,6 +16,9 @@ func main() {
 	}
 
 	if err := db.Migrator().DropTable(
+		"game_categories",
+		&models.Post{},
+		&models.Category{},
 		&models.Game{},
 		&models.Message{},
 		&models.Friend{},
