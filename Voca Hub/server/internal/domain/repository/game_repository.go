@@ -8,5 +8,6 @@ type GameRepository interface {
 	Update(game *models.Game) error
 	ListAll() ([]models.Game, error)
 	ListApproved() ([]models.Game, error)
+	ListByDeveloperID(developerID uint) ([]models.Game, error)
 	CountAll() (int64, error)
 }

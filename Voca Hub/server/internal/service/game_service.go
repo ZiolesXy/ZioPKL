@@ -101,7 +101,8 @@ func (s *GameService) UploadGame(developerID uint, title string, description str
 	if err := s.gameRepo.Create(game); err != nil {
 		return nil, err
 	}
-	return game, nil
+
+	return s.gameRepo.FindByID(game.ID)
 }
 
 func (s *GameService) ListApprovedGames() ([]models.Game, error) {
@@ -117,6 +118,10 @@ func (s *GameService) GetApprovedGame(id uint) (*models.Game, error) {
 		return nil, errors.New("game not found")
 	}
 	return game, nil
+}
+
+func (s *GameService) ListGamesByDeveloperID(developerID uint) ([]models.Game, error) {
+	return s.gameRepo.ListByDeveloperID(developerID)
 }
 
 func (s *GameService) PlayGame(id uint) (string, error) {

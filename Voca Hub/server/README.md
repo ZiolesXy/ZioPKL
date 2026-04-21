@@ -53,6 +53,7 @@
 - `GET /api/chat/ws`
 - `POST /api/games/upload`
 - `GET /api/games`
+- `GET /api/games/mine`
 - `GET /api/games/:id`
 - `GET /api/games/:id/play`
 - `GET /api/admin/dashboard`

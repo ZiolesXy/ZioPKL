@@ -49,6 +49,12 @@ func (r *gameRepository) ListApproved() ([]models.Game, error) {
 	return games, err
 }
 
+func (r *gameRepository) ListByDeveloperID(developerID uint) ([]models.Game, error) {
+	var games []models.Game
+	err := r.db.Preload("Developer").Where("developer_id = ?", developerID).Order("created_at desc").Find(&games).Error
+	return games, err
+}
+
 func (r *gameRepository) CountAll() (int64, error) {
 	var total int64
 	err := r.db.Model(&models.Game{}).Count(&total).Error

@@ -5,7 +5,9 @@ import (
 	"log"
 	"mime"
 	"net/http"
+	"net/url"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -45,7 +47,7 @@ func (h *GameHandler) UploadGame(c *gin.Context) {
 		helper.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	helper.Success(c, http.StatusCreated, "game uploaded",  helper.WrapListIfNeeded(game))
+	helper.Success(c, http.StatusCreated, "game uploaded", helper.WrapListIfNeeded(game))
 }
 
 func (h *GameHandler) ListApprovedGames(c *gin.Context) {
@@ -55,6 +57,18 @@ func (h *GameHandler) ListApprovedGames(c *gin.Context) {
 		return
 	}
 	helper.Success(c, http.StatusOK, "approved games fetched", helper.WrapListIfNeeded(games))
+}
+
+func (h *GameHandler) ListMyGames(c *gin.Context) {
+	user := helper.MustCurrentUser(c)
+
+	games, err := h.gameService.ListGamesByDeveloperID(user.ID)
+	if err != nil {
+		helper.Error(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	helper.Success(c, http.StatusOK, "user games fetched", helper.WrapListIfNeeded(games))
 }
 
 func (h *GameHandler) GetApprovedGame(c *gin.Context) {
@@ -122,6 +136,37 @@ func (h *GameHandler) ServeGameFile(c *gin.Context) {
 	}
 }
 
+func (h *GameHandler) ServeRootAssetFallback(c *gin.Context) {
+	filePath := strings.TrimPrefix(c.Param("filepath"), "/")
+	if filePath == "" || isReservedRootPath(filePath) {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+
+	gameID, ok := gameIDFromReferer(c.GetHeader("Referer"))
+	if !ok {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+
+	reader, contentType, err := h.gameService.OpenGameAsset(gameID, filePath)
+	if err != nil {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+	defer reader.Close()
+
+	contentType = detectContentType(filePath, contentType)
+	if contentType != "" {
+		c.Header("Content-Type", contentType)
+	}
+	c.Header("Cache-Control", "no-store")
+
+	if _, err := io.Copy(c.Writer, reader); err != nil {
+		c.Status(http.StatusInternalServerError)
+	}
+}
+
 func isHTMLAsset(path string, contentType string) bool {
 	if strings.HasPrefix(contentType, "text/html") {
 		return true
@@ -160,6 +205,36 @@ func detectContentType(path string, current string) string {
 
 func buildPlayBaseHref(id uint) string {
 	return "/play/" + strconv.FormatUint(uint64(id), 10) + "/"
+}
+
+var playRefererPattern = regexp.MustCompile(`^/play/(\d+)(?:/|$)`)
+
+func gameIDFromReferer(raw string) (uint, bool) {
+	if strings.TrimSpace(raw) == "" {
+		return 0, false
+	}
+
+	parsed, err := url.Parse(raw)
+	if err != nil {
+		return 0, false
+	}
+
+	matches := playRefererPattern.FindStringSubmatch(parsed.Path)
+	if len(matches) != 2 {
+		return 0, false
+	}
+
+	id, err := strconv.ParseUint(matches[1], 10, 64)
+	if err != nil {
+		return 0, false
+	}
+
+	return uint(id), true
+}
+
+func isReservedRootPath(path string) bool {
+	cleanPath := strings.Trim(strings.ToLower(filepath.ToSlash(path)), "/")
+	return cleanPath == "health" || cleanPath == "api" || strings.HasPrefix(cleanPath, "api/") || cleanPath == "play" || strings.HasPrefix(cleanPath, "play/")
 }
 
 func injectBaseHref(html string, baseHref string) string {

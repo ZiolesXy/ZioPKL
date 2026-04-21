@@ -87,6 +87,7 @@ func New() (*App, error) {
 
 	router.GET("/play/:id", gameHandler.ServeGameFile)
 	router.GET("/play/:id/*filepath", gameHandler.ServeGameFile)
+	router.NoRoute(gameHandler.ServeRootAssetFallback)
 
 	api := router.Group("/api")
 	api.Use(authMiddleware.Handle())
@@ -110,6 +111,7 @@ func New() (*App, error) {
 		games := api.Group("/games")
 		{
 			games.GET("", gameHandler.ListApprovedGames)
+			games.GET("/mine", gameHandler.ListMyGames)
 			games.GET("/:id", gameHandler.GetApprovedGame)
 			games.GET("/:id/play", gameHandler.PlayGame)
 			games.Use(roleMiddleware.Require("USER", "DEVELOPER", "ADMIN"))
