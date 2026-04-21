@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"mime"
 	"os"
 	"path/filepath"
 	"slices"
@@ -128,6 +129,11 @@ func main() {
 	}
 	slices.Sort(zipFiles)
 
+	thumbnailPaths, err := resetResolveSeedThumbnailPaths(minioStorage, zipFiles)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	for index, zipPath := range zipFiles {
 		title := resetTitleFromFilename(filepath.Base(zipPath))
 		description := fmt.Sprintf("Placeholder description for %s.", title)
@@ -141,6 +147,12 @@ func main() {
 			Title:       title,
 			Description: description,
 			FileURL:     objectPrefix,
+			ThumbnailPath: func() string {
+				if index < len(thumbnailPaths) {
+					return thumbnailPaths[index]
+				}
+				return ""
+			}(),
 			DeveloperID: developerID,
 			Status:      "approved",
 			Categories: []models.Category{
@@ -230,6 +242,115 @@ func resetUploadSeedGameArchive(minioStorage *storage.MinIOStorage, developerID 
 	}
 
 	return objectPrefix, nil
+}
+
+func resetResolveSeedThumbnailPaths(minioStorage *storage.MinIOStorage, zipFiles []string) ([]string, error) {
+	assignments := make([]string, len(zipFiles))
+
+	thumbnailDir := filepath.Join("seeders", "thumbnail")
+	info, err := os.Stat(thumbnailDir)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return assignments, nil
+		}
+		return nil, err
+	}
+	if !info.IsDir() {
+		return nil, fmt.Errorf("%s is not a directory", thumbnailDir)
+	}
+
+	entries, err := os.ReadDir(thumbnailDir)
+	if err != nil {
+		return nil, err
+	}
+
+	var defaultFile string
+	var imageFiles []string
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		name := entry.Name()
+		fullPath := filepath.Join(thumbnailDir, name)
+		if !resetIsSeedImageFile(name) {
+			continue
+		}
+
+		baseName := strings.TrimSuffix(strings.ToLower(name), strings.ToLower(filepath.Ext(name)))
+		if baseName == "default" && defaultFile == "" {
+			defaultFile = fullPath
+			continue
+		}
+
+		imageFiles = append(imageFiles, fullPath)
+	}
+
+	if defaultFile != "" {
+		objectName, err := resetUploadSeedThumbnailFile(minioStorage, defaultFile)
+		if err != nil {
+			return nil, err
+		}
+		for i := range assignments {
+			assignments[i] = objectName
+		}
+		return assignments, nil
+	}
+
+	if len(imageFiles) == 0 {
+		return assignments, nil
+	}
+
+	slices.Sort(imageFiles)
+
+	uploaded := make([]string, 0, len(imageFiles))
+	for _, imageFile := range imageFiles {
+		objectName, err := resetUploadSeedThumbnailFile(minioStorage, imageFile)
+		if err != nil {
+			return nil, err
+		}
+		uploaded = append(uploaded, objectName)
+	}
+
+	for i := range assignments {
+		assignments[i] = uploaded[i%len(uploaded)]
+	}
+
+	return assignments, nil
+}
+
+func resetUploadSeedThumbnailFile(minioStorage *storage.MinIOStorage, filePath string) (string, error) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	info, err := file.Stat()
+	if err != nil {
+		return "", err
+	}
+
+	contentType := mime.TypeByExtension(strings.ToLower(filepath.Ext(filePath)))
+	if !strings.HasPrefix(contentType, "image/") {
+		return "", fmt.Errorf("thumbnail %s must be an image", filepath.Base(filePath))
+	}
+
+	objectName := filepath.ToSlash(filepath.Join("seed", filepath.Base(filePath)))
+	if err := minioStorage.UploadFile(minioStorage.ThumbnailBucket(), objectName, file, info.Size(), contentType); err != nil {
+		return "", err
+	}
+
+	return objectName, nil
+}
+
+func resetIsSeedImageFile(name string) bool {
+	switch strings.ToLower(filepath.Ext(name)) {
+	case ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".svg":
+		return true
+	default:
+		return false
+	}
 }
 
 func resetValidateAndExtractSeedArchive(zipPath string, extractDir string) error {

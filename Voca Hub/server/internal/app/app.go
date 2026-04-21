@@ -92,6 +92,7 @@ func New() (*App, error) {
 	router.GET("/play/:id", gameHandler.ServeGameFile)
 	router.GET("/play/:id/*filepath", gameHandler.ServeGameFile)
 	router.GET("/games/thumbnail/*filepath", gameHandler.ServeThumbnail)
+	router.GET("/games", gameHandler.ListApprovedGames)
 	router.NoRoute(gameHandler.ServeRootAssetFallback)
 
 	api := router.Group("/api")
@@ -115,7 +116,6 @@ func New() (*App, error) {
 
 		games := api.Group("/games")
 		{
-			games.GET("", gameHandler.ListApprovedGames)
 			games.GET("/mine", gameHandler.ListMyGames)
 			games.GET("/:id", gameHandler.GetApprovedGame)
 			games.GET("/:id/play", gameHandler.PlayGame)
