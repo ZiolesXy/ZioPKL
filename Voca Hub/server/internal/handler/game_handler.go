@@ -11,10 +11,12 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
 	"server/internal/domain/dto"
+	"server/internal/domain/models"
 	"server/internal/helper"
 	"server/internal/service"
 )
@@ -38,17 +40,59 @@ func (h *GameHandler) UploadGame(c *gin.Context) {
 		helper.Error(c, http.StatusBadRequest, "file is required")
 		return
 	}
+	thumbnail, err := c.FormFile("thumbnail")
+	if err != nil {
+		thumbnail = nil
+	}
 
 	user := helper.MustCurrentUser(c)
 	if gin.Mode() == gin.DebugMode {
 		log.Printf("upload requested by user id=%d clerk_id=%s role=%s", user.ID, user.ClerkID, user.Role)
 	}
-	game, err := h.gameService.UploadGame(user.ID, req.Title, req.Description, file)
+	game, err := h.gameService.UploadGame(user.ID, req.Title, req.Description, req.CategoryIDs, file, thumbnail)
 	if err != nil {
 		helper.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	helper.Success(c, http.StatusCreated, "game uploaded", helper.WrapListIfNeeded(game))
+	helper.Success(c, http.StatusCreated, "game uploaded", presentGame(game, h.gameService))
+}
+
+func (h *GameHandler) UpdateGame(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		helper.Error(c, http.StatusBadRequest, "invalid id")
+		return
+	}
+
+	var req dto.UpdateGameRequest
+	if err := c.ShouldBind(&req); err != nil {
+		helper.Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	file, err := c.FormFile("file")
+	if err != nil {
+		file = nil
+	}
+	thumbnail, err := c.FormFile("thumbnail")
+	if err != nil {
+		thumbnail = nil
+	}
+
+	user := helper.MustCurrentUser(c)
+	game, err := h.gameService.UpdateGame(uint(id), user, req.Title, req.Description, req.CategoryIDs, file, thumbnail)
+	if err != nil {
+		status := http.StatusBadRequest
+		if err.Error() == "game not found" {
+			status = http.StatusNotFound
+		} else if err.Error() == "forbidden" {
+			status = http.StatusForbidden
+		}
+		helper.Error(c, status, err.Error())
+		return
+	}
+
+	helper.Success(c, http.StatusOK, "game updated", presentGame(game, h.gameService))
 }
 
 func (h *GameHandler) ListApprovedGames(c *gin.Context) {
@@ -57,7 +101,7 @@ func (h *GameHandler) ListApprovedGames(c *gin.Context) {
 		helper.Error(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	helper.Success(c, http.StatusOK, "approved games fetched", helper.WrapListIfNeeded(games))
+	helper.Success(c, http.StatusOK, "approved games fetched", helper.WrapListIfNeeded(presentGames(games, h.gameService)))
 }
 
 func (h *GameHandler) ListMyGames(c *gin.Context) {
@@ -69,7 +113,7 @@ func (h *GameHandler) ListMyGames(c *gin.Context) {
 		return
 	}
 
-	helper.Success(c, http.StatusOK, "user games fetched", helper.WrapListIfNeeded(games))
+	helper.Success(c, http.StatusOK, "user games fetched", helper.WrapListIfNeeded(presentGames(games, h.gameService)))
 }
 
 func (h *GameHandler) GetApprovedGame(c *gin.Context) {
@@ -83,7 +127,7 @@ func (h *GameHandler) GetApprovedGame(c *gin.Context) {
 		helper.Error(c, http.StatusNotFound, err.Error())
 		return
 	}
-	helper.Success(c, http.StatusOK, "game fetched", helper.WrapListIfNeeded(game))
+	helper.Success(c, http.StatusOK, "game fetched", presentGame(game, h.gameService))
 }
 
 func (h *GameHandler) PlayGame(c *gin.Context) {
@@ -296,4 +340,111 @@ func injectBaseHref(html string, baseHref string) string {
 	}
 
 	return "<head>" + baseTag + "</head>" + html
+}
+
+func (h *GameHandler) ListCategories(c *gin.Context) {
+	categories, err := h.gameService.ListCategories()
+	if err != nil {
+		helper.Error(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	helper.Success(c, http.StatusOK, "categories fetched", helper.WrapListIfNeeded(categories))
+}
+
+func (h *GameHandler) CreateCategory(c *gin.Context) {
+	var req struct {
+		Name string `json:"name" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		helper.Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	category, err := h.gameService.CreateCategory(req.Name)
+	if err != nil {
+		helper.Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	helper.Success(c, http.StatusCreated, "category created", category)
+}
+
+func (h *GameHandler) UpdateCategory(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		helper.Error(c, http.StatusBadRequest, "invalid id")
+		return
+	}
+
+	var req struct {
+		Name string `json:"name" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		helper.Error(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	category, err := h.gameService.UpdateCategory(uint(id), req.Name)
+	if err != nil {
+		status := http.StatusBadRequest
+		if err.Error() == "category not found" {
+			status = http.StatusNotFound
+		}
+		helper.Error(c, status, err.Error())
+		return
+	}
+	helper.Success(c, http.StatusOK, "category updated", category)
+}
+
+func (h *GameHandler) DeleteCategory(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		helper.Error(c, http.StatusBadRequest, "invalid id")
+		return
+	}
+
+	if err := h.gameService.DeleteCategory(uint(id)); err != nil {
+		status := http.StatusBadRequest
+		if err.Error() == "category not found" {
+			status = http.StatusNotFound
+		}
+		helper.Error(c, status, err.Error())
+		return
+	}
+	helper.Success(c, http.StatusOK, "category deleted", nil)
+}
+
+type gameResponse struct {
+	ID           uint              `json:"id"`
+	Title        string            `json:"title"`
+	Description  string            `json:"description"`
+	FileURL      string            `json:"file_url"`
+	ThumbnailURL string            `json:"thumbnail_url"`
+	DeveloperID  uint              `json:"developer_id"`
+	Status       string            `json:"status"`
+	CreatedAt    string            `json:"created_at"`
+	Developer    models.User       `json:"developer"`
+	Categories   []models.Category `json:"categories"`
+}
+
+func presentGames(games []models.Game, gameService *service.GameService) []gameResponse {
+	result := make([]gameResponse, 0, len(games))
+	for _, game := range games {
+		result = append(result, presentGame(&game, gameService))
+	}
+	return result
+}
+
+func presentGame(game *models.Game, gameService *service.GameService) gameResponse {
+	return gameResponse{
+		ID:           game.ID,
+		Title:        game.Title,
+		Description:  game.Description,
+		FileURL:      game.FileURL,
+		ThumbnailURL: gameService.BuildThumbnailURL(game.ThumbnailPath),
+		DeveloperID:  game.DeveloperID,
+		Status:       game.Status,
+		CreatedAt:    game.CreatedAt.Format(time.RFC3339),
+		Developer:    game.Developer,
+		Categories:   game.Categories,
+	}
 }

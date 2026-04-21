@@ -36,6 +36,8 @@
 
 - Local MinIO credentials are fixed to `minioadmin` / `minioadmin`
 - Local workflow only starts Redis and MinIO from `make/local.compose.yml`
+- Set `STORAGE_BASE_URL` to the MinIO root endpoint, for example `http://localhost:9000`
+- Game archives use `MINIO_BUCKET` and thumbnails use `MINIO_THUMBNAIL_BUCKET`
 
 ## Seeder Notes
 
@@ -52,10 +54,21 @@
 - `GET /api/chat/history/:user_id`
 - `GET /api/chat/ws`
 - `POST /api/games/upload`
+- `PUT /api/games/:id`
 - `GET /api/games`
 - `GET /api/games/mine`
 - `GET /api/games/:id`
 - `GET /api/games/:id/play`
+- `GET /api/categories`
+- `POST /api/categories`
+- `PUT /api/categories/:id`
+- `DELETE /api/categories/:id`
+- `POST /api/posts`
+- `GET /api/posts`
+- `GET /api/posts/mine`
+- `GET /api/posts/:id`
+- `PUT /api/posts/:id`
+- `DELETE /api/posts/:id`
 - `GET /api/admin/dashboard`
 - `GET /api/admin/users`
 - `GET /api/admin/games`

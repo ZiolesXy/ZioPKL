@@ -27,30 +27,31 @@ const (
 )
 
 type Config struct {
-	AppPort        string
-	CORSOrigins    string
-	DBHost         string
-	DBPort         string
-	DBUser         string
-	DBPassword     string
-	DBName         string
-	DBSSLMode      string
-	DBTimeZone     string
-	RedisHost      string
-	RedisPort      string
-	RedisPassword  string
-	RedisDB        int
-	MinIOEndpoint  string
-	MinIOAccessKey string
-	MinIOSecretKey string
-	MinIOBucket    string
-	MinIOUseSSL    bool
-	ClerkJWKSURL   string
-	ClerkIssuer    string
-	ClerkAudience  string
-	ClerkSecretKey string
-	ClerkAPIURL    string
-	StorageBaseURL string
+	AppPort              string
+	CORSOrigins          string
+	DBHost               string
+	DBPort               string
+	DBUser               string
+	DBPassword           string
+	DBName               string
+	DBSSLMode            string
+	DBTimeZone           string
+	RedisHost            string
+	RedisPort            string
+	RedisPassword        string
+	RedisDB              int
+	MinIOEndpoint        string
+	MinIOAccessKey       string
+	MinIOSecretKey       string
+	MinIOBucket          string
+	MinIOThumbnailBucket string
+	MinIOUseSSL          bool
+	ClerkJWKSURL         string
+	ClerkIssuer          string
+	ClerkAudience        string
+	ClerkSecretKey       string
+	ClerkAPIURL          string
+	StorageBaseURL       string
 }
 
 type ClerkClaims struct {
@@ -85,30 +86,31 @@ func LoadConfig() Config {
 	_ = godotenv.Load()
 
 	return Config{
-		AppPort:        getEnv("APP_PORT", "8080"),
-		CORSOrigins:    getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173"),
-		DBHost:         getEnv("DB_HOST", "localhost"),
-		DBPort:         getEnv("DB_PORT", "5432"),
-		DBUser:         getEnv("DB_USER", "postgres"),
-		DBPassword:     getEnv("DB_PASSWORD", "postgres"),
-		DBName:         getEnv("DB_NAME", "voca_hub"),
-		DBSSLMode:      getEnv("DB_SSLMODE", "disable"),
-		DBTimeZone:     getEnv("DB_TIMEZONE", "UTC"),
-		RedisHost:      getEnv("REDIS_HOST", "localhost"),
-		RedisPort:      getEnv("REDIS_PORT", "6379"),
-		RedisPassword:  getEnv("REDIS_PASSWORD", ""),
-		RedisDB:        getEnvAsInt("REDIS_DB", 0),
-		MinIOEndpoint:  getEnv("MINIO_ENDPOINT", "localhost:9000"),
-		MinIOAccessKey: getEnv("MINIO_ACCESS_KEY", "minioadmin"),
-		MinIOSecretKey: getEnv("MINIO_SECRET_KEY", "minioadmin"),
-		MinIOBucket:    getEnv("MINIO_BUCKET", "games"),
-		MinIOUseSSL:    getEnvAsBool("MINIO_USE_SSL", false),
-		ClerkJWKSURL:   getEnv("CLERK_JWKS_URL", ""),
-		ClerkIssuer:    getEnv("CLERK_ISSUER", ""),
-		ClerkAudience:  getEnv("CLERK_AUDIENCE", ""),
-		ClerkSecretKey: getEnv("CLERK_SECRET_KEY", ""),
-		ClerkAPIURL:    getEnv("CLERK_API_URL", "https://api.clerk.com"),
-		StorageBaseURL: getEnv("STORAGE_BASE_URL", ""),
+		AppPort:              getEnv("APP_PORT", "8080"),
+		CORSOrigins:          getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173"),
+		DBHost:               getEnv("DB_HOST", "localhost"),
+		DBPort:               getEnv("DB_PORT", "5432"),
+		DBUser:               getEnv("DB_USER", "postgres"),
+		DBPassword:           getEnv("DB_PASSWORD", "postgres"),
+		DBName:               getEnv("DB_NAME", "voca_hub"),
+		DBSSLMode:            getEnv("DB_SSLMODE", "disable"),
+		DBTimeZone:           getEnv("DB_TIMEZONE", "UTC"),
+		RedisHost:            getEnv("REDIS_HOST", "localhost"),
+		RedisPort:            getEnv("REDIS_PORT", "6379"),
+		RedisPassword:        getEnv("REDIS_PASSWORD", ""),
+		RedisDB:              getEnvAsInt("REDIS_DB", 0),
+		MinIOEndpoint:        getEnv("MINIO_ENDPOINT", "localhost:9000"),
+		MinIOAccessKey:       getEnv("MINIO_ACCESS_KEY", "minioadmin"),
+		MinIOSecretKey:       getEnv("MINIO_SECRET_KEY", "minioadmin"),
+		MinIOBucket:          getEnv("MINIO_BUCKET", "games"),
+		MinIOThumbnailBucket: getEnv("MINIO_THUMBNAIL_BUCKET", "thumbnails"),
+		MinIOUseSSL:          getEnvAsBool("MINIO_USE_SSL", false),
+		ClerkJWKSURL:         getEnv("CLERK_JWKS_URL", ""),
+		ClerkIssuer:          getEnv("CLERK_ISSUER", ""),
+		ClerkAudience:        getEnv("CLERK_AUDIENCE", ""),
+		ClerkSecretKey:       getEnv("CLERK_SECRET_KEY", ""),
+		ClerkAPIURL:          getEnv("CLERK_API_URL", "https://api.clerk.com"),
+		StorageBaseURL:       getEnv("STORAGE_BASE_URL", ""),
 	}
 }
 

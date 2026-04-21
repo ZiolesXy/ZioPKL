@@ -18,11 +18,12 @@ import (
 )
 
 type MinIOStorage struct {
-	client   *minio.Client
-	bucket   string
-	baseURL  string
-	endpoint string
-	useSSL   bool
+	client          *minio.Client
+	bucket          string
+	thumbnailBucket string
+	baseURL         string
+	endpoint        string
+	useSSL          bool
 }
 
 func NewMinIO(cfg helper.Config) (*MinIOStorage, error) {
@@ -35,22 +36,25 @@ func NewMinIO(cfg helper.Config) (*MinIOStorage, error) {
 	}
 
 	ctx := context.Background()
-	exists, err := client.BucketExists(ctx, cfg.MinIOBucket)
-	if err != nil {
-		return nil, err
-	}
-	if !exists {
-		if err := client.MakeBucket(ctx, cfg.MinIOBucket, minio.MakeBucketOptions{}); err != nil {
+	for _, bucket := range []string{cfg.MinIOBucket, cfg.MinIOThumbnailBucket} {
+		exists, err := client.BucketExists(ctx, bucket)
+		if err != nil {
 			return nil, err
+		}
+		if !exists {
+			if err := client.MakeBucket(ctx, bucket, minio.MakeBucketOptions{}); err != nil {
+				return nil, err
+			}
 		}
 	}
 
 	return &MinIOStorage{
-		client:   client,
-		bucket:   cfg.MinIOBucket,
-		baseURL:  cfg.StorageBaseURL,
-		endpoint: cfg.MinIOEndpoint,
-		useSSL:   cfg.MinIOUseSSL,
+		client:          client,
+		bucket:          cfg.MinIOBucket,
+		thumbnailBucket: cfg.MinIOThumbnailBucket,
+		baseURL:         cfg.StorageBaseURL,
+		endpoint:        cfg.MinIOEndpoint,
+		useSSL:          cfg.MinIOUseSSL,
 	}, nil
 }
 
@@ -77,15 +81,34 @@ func (s *MinIOStorage) UploadDirectory(prefix string, root string) error {
 	})
 }
 
+func (s *MinIOStorage) UploadFile(bucket string, objectName string, reader io.Reader, size int64, contentType string) error {
+	_, err := s.client.PutObject(context.Background(), bucket, objectName, reader, size, minio.PutObjectOptions{
+		ContentType: contentType,
+	})
+	return err
+}
+
 func (s *MinIOStorage) BuildPrefixURL(prefix string) string {
+	return s.buildBucketObjectURL(s.bucket, prefix)
+}
+
+func (s *MinIOStorage) BuildThumbnailURL(objectName string) string {
+	return s.buildBucketObjectURL(s.thumbnailBucket, objectName)
+}
+
+func (s *MinIOStorage) ThumbnailBucket() string {
+	return s.thumbnailBucket
+}
+
+func (s *MinIOStorage) buildBucketObjectURL(bucket string, objectName string) string {
 	if s.baseURL != "" {
-		return fmt.Sprintf("%s/%s", s.baseURL, prefix)
+		return fmt.Sprintf("%s/%s/%s", strings.TrimRight(s.baseURL, "/"), bucket, strings.TrimLeft(objectName, "/"))
 	}
 	scheme := "http"
 	if s.useSSL {
 		scheme = "https"
 	}
-	return fmt.Sprintf("%s://%s/%s/%s", scheme, s.endpoint, s.bucket, prefix)
+	return fmt.Sprintf("%s://%s/%s/%s", scheme, s.endpoint, bucket, strings.TrimLeft(objectName, "/"))
 }
 
 func (s *MinIOStorage) PresignedObjectURL(objectName string, expiry time.Duration) (string, error) {

@@ -46,7 +46,7 @@ func (h *AdminHandler) ListGames(c *gin.Context) {
 		helper.Error(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	helper.Success(c, http.StatusOK, "games fetched", helper.WrapListIfNeeded(games))
+	helper.Success(c, http.StatusOK, "games fetched", helper.WrapListIfNeeded(presentGames(games, h.gameService)))
 }
 
 func (h *AdminHandler) ApproveGame(c *gin.Context) {

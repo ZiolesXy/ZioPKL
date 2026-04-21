@@ -20,6 +20,8 @@ func main() {
 		&models.Friend{},
 		&models.Message{},
 		&models.Game{},
+		&models.Category{},
+		&models.Post{},
 	); err != nil {
 		log.Fatal(err)
 	}

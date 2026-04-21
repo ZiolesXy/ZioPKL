@@ -54,16 +54,20 @@ func New() (*App, error) {
 	friendRepo := repository.NewFriendRepository(db)
 	messageRepo := repository.NewMessageRepository(db)
 	gameRepo := repository.NewGameRepository(db)
+	categoryRepo := repository.NewCategoryRepository(db)
+	postRepo := repository.NewPostRepository(db)
 
 	userService := service.NewUserService(userRepo, clerkClient)
 	friendService := service.NewFriendService(friendRepo, userRepo)
 	chatService := service.NewChatService(messageRepo, userRepo)
-	gameService := service.NewGameService(gameRepo, userRepo, minioClient, cfg)
+	gameService := service.NewGameService(gameRepo, userRepo, categoryRepo, minioClient, cfg)
+	postService := service.NewPostService(postRepo)
 	adminService := service.NewAdminService(userRepo, gameRepo, redisClient)
 
 	friendHandler := handler.NewFriendHandler(friendService)
 	chatHandler := handler.NewChatHandler(chatService)
 	gameHandler := handler.NewGameHandler(gameService)
+	postHandler := handler.NewPostHandler(postService)
 	adminHandler := handler.NewAdminHandler(adminService, gameService)
 
 	hub := websocket.NewHub(chatService)
@@ -116,6 +120,26 @@ func New() (*App, error) {
 			games.GET("/:id/play", gameHandler.PlayGame)
 			games.Use(roleMiddleware.Require("USER", "DEVELOPER", "ADMIN"))
 			games.POST("/upload", gameHandler.UploadGame)
+			games.PUT("/:id", gameHandler.UpdateGame)
+		}
+
+		categories := api.Group("/categories")
+		{
+			categories.GET("", gameHandler.ListCategories)
+			categories.Use(roleMiddleware.Require("ADMIN"))
+			categories.POST("", gameHandler.CreateCategory)
+			categories.PUT("/:id", gameHandler.UpdateCategory)
+			categories.DELETE("/:id", gameHandler.DeleteCategory)
+		}
+
+		posts := api.Group("/posts")
+		{
+			posts.GET("", postHandler.List)
+			posts.GET("/mine", postHandler.ListMine)
+			posts.GET("/:id", postHandler.GetByID)
+			posts.POST("", postHandler.Create)
+			posts.PUT("/:id", postHandler.Update)
+			posts.DELETE("/:id", postHandler.Delete)
 		}
 
 		admin := api.Group("/admin")

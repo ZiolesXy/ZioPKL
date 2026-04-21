@@ -5,11 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime"
 	"mime/multipart"
 	"os"
 	"path"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 
 	"server/internal/domain/models"
@@ -21,6 +23,7 @@ import (
 type GameService struct {
 	gameRepo     domainrepo.GameRepository
 	userRepo     domainrepo.UserRepository
+	categoryRepo domainrepo.CategoryRepository
 	minioStorage *storage.MinIOStorage
 	cfg          helper.Config
 }
@@ -28,18 +31,20 @@ type GameService struct {
 func NewGameService(
 	gameRepo domainrepo.GameRepository,
 	userRepo domainrepo.UserRepository,
+	categoryRepo domainrepo.CategoryRepository,
 	minioStorage *storage.MinIOStorage,
 	cfg helper.Config,
 ) *GameService {
 	return &GameService{
 		gameRepo:     gameRepo,
 		userRepo:     userRepo,
+		categoryRepo: categoryRepo,
 		minioStorage: minioStorage,
 		cfg:          cfg,
 	}
 }
 
-func (s *GameService) UploadGame(developerID uint, title string, description string, fileHeader *multipart.FileHeader) (*models.Game, error) {
+func (s *GameService) UploadGame(developerID uint, title string, description string, categoryIDs []uint, fileHeader *multipart.FileHeader, thumbnailHeader *multipart.FileHeader) (*models.Game, error) {
 	developer, err := s.userRepo.FindByID(developerID)
 	if err != nil {
 		return nil, err
@@ -52,6 +57,11 @@ func (s *GameService) UploadGame(developerID uint, title string, description str
 	// }
 	if strings.ToLower(filepath.Ext(fileHeader.Filename)) != ".zip" {
 		return nil, errors.New("only zip file allowed")
+	}
+
+	categories, err := s.resolveCategories(categoryIDs)
+	if err != nil {
+		return nil, err
 	}
 
 	src, err := fileHeader.Open()
@@ -96,14 +106,66 @@ func (s *GameService) UploadGame(developerID uint, title string, description str
 		return nil, err
 	}
 
+	thumbnailPath, err := s.uploadThumbnail(title, thumbnailHeader)
+	if err != nil {
+		return nil, err
+	}
+
 	game := &models.Game{
-		Title:       title,
-		Description: description,
-		FileURL:     objectPrefix,
-		DeveloperID: developerID,
-		Status:      "pending",
+		Title:         title,
+		Description:   description,
+		FileURL:       objectPrefix,
+		ThumbnailPath: thumbnailPath,
+		DeveloperID:   developerID,
+		Status:        "pending",
+		Categories:    categories,
 	}
 	if err := s.gameRepo.Create(game); err != nil {
+		return nil, err
+	}
+
+	return s.gameRepo.FindByID(game.ID)
+}
+
+func (s *GameService) UpdateGame(gameID uint, actor *models.User, title string, description string, categoryIDs []uint, fileHeader *multipart.FileHeader, thumbnailHeader *multipart.FileHeader) (*models.Game, error) {
+	game, err := s.gameRepo.FindByID(gameID)
+	if err != nil {
+		return nil, err
+	}
+	if game == nil {
+		return nil, errors.New("game not found")
+	}
+	if actor.Role != "ADMIN" && game.DeveloperID != actor.ID {
+		return nil, errors.New("forbidden")
+	}
+
+	if strings.TrimSpace(title) != "" {
+		game.Title = title
+	}
+	if description != "" {
+		game.Description = description
+	}
+	if categoryIDs != nil {
+		categories, err := s.resolveCategories(categoryIDs)
+		if err != nil {
+			return nil, err
+		}
+		game.Categories = categories
+	}
+	if fileHeader != nil {
+		if err := s.replaceGameArchive(game, fileHeader); err != nil {
+			return nil, err
+		}
+	}
+	if thumbnailHeader != nil {
+		thumbnailPath, err := s.uploadThumbnail(game.Title, thumbnailHeader)
+		if err != nil {
+			return nil, err
+		}
+		game.ThumbnailPath = thumbnailPath
+	}
+
+	if err := s.gameRepo.Update(game); err != nil {
 		return nil, err
 	}
 
@@ -171,6 +233,62 @@ func (s *GameService) RejectGame(id uint) error {
 	return s.gameRepo.Update(game)
 }
 
+func (s *GameService) ListCategories() ([]models.Category, error) {
+	return s.categoryRepo.ListAll()
+}
+
+func (s *GameService) CreateCategory(name string) (*models.Category, error) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return nil, errors.New("name is required")
+	}
+
+	category := &models.Category{Name: name}
+	if err := s.categoryRepo.Create(category); err != nil {
+		return nil, err
+	}
+	return category, nil
+}
+
+func (s *GameService) UpdateCategory(id uint, name string) (*models.Category, error) {
+	category, err := s.categoryRepo.FindByID(id)
+	if err != nil {
+		return nil, err
+	}
+	if category == nil {
+		return nil, errors.New("category not found")
+	}
+
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return nil, errors.New("name is required")
+	}
+
+	category.Name = name
+	if err := s.categoryRepo.Update(category); err != nil {
+		return nil, err
+	}
+	return category, nil
+}
+
+func (s *GameService) DeleteCategory(id uint) error {
+	category, err := s.categoryRepo.FindByID(id)
+	if err != nil {
+		return err
+	}
+	if category == nil {
+		return errors.New("category not found")
+	}
+	return s.categoryRepo.Delete(id)
+}
+
+func (s *GameService) BuildThumbnailURL(objectName string) string {
+	if strings.TrimSpace(objectName) == "" {
+		return ""
+	}
+	return s.minioStorage.BuildThumbnailURL(objectName)
+}
+
 func (s *GameService) OpenGameAsset(id uint, assetPath string) (io.ReadCloser, string, error) {
 	game, err := s.GetApprovedGame(id)
 	if err != nil {
@@ -205,6 +323,121 @@ func (s *GameService) OpenGameAsset(id uint, assetPath string) (io.ReadCloser, s
 func hasRootIndexHTML(dir string) bool {
 	info, err := os.Stat(filepath.Join(dir, "index.html"))
 	return err == nil && !info.IsDir()
+}
+
+func (s *GameService) resolveCategories(categoryIDs []uint) ([]models.Category, error) {
+	if len(categoryIDs) == 0 {
+		return []models.Category{}, nil
+	}
+
+	deduped := make([]uint, 0, len(categoryIDs))
+	seen := make(map[uint]struct{}, len(categoryIDs))
+	for _, id := range categoryIDs {
+		if id == 0 {
+			return nil, errors.New("invalid category id")
+		}
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		deduped = append(deduped, id)
+	}
+
+	categories, err := s.categoryRepo.FindByIDs(deduped)
+	if err != nil {
+		return nil, err
+	}
+	if len(categories) != len(deduped) {
+		foundIDs := make([]uint, 0, len(categories))
+		for _, category := range categories {
+			foundIDs = append(foundIDs, category.ID)
+		}
+		for _, id := range deduped {
+			if !slices.Contains(foundIDs, id) {
+				return nil, fmt.Errorf("category %d not found", id)
+			}
+		}
+	}
+
+	return categories, nil
+}
+
+func (s *GameService) replaceGameArchive(game *models.Game, fileHeader *multipart.FileHeader) error {
+	if strings.ToLower(filepath.Ext(fileHeader.Filename)) != ".zip" {
+		return errors.New("only zip file allowed")
+	}
+
+	src, err := fileHeader.Open()
+	if err != nil {
+		return err
+	}
+	defer src.Close()
+
+	tempRoot, err := os.MkdirTemp("", "game-update-*")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(tempRoot)
+
+	zipPath := filepath.Join(tempRoot, fileHeader.Filename)
+	if err := helper.CopyMultipartFile(src, zipPath); err != nil {
+		return err
+	}
+	if err := validateAndExtractGameArchive(zipPath, filepath.Join(tempRoot, "extracted")); err != nil {
+		return err
+	}
+
+	objectPrefix := fmt.Sprintf("%d/%s", game.DeveloperID, helper.Slugify(game.Title))
+	if err := s.minioStorage.UploadDirectory(objectPrefix, filepath.Join(tempRoot, "extracted")); err != nil {
+		return err
+	}
+	game.FileURL = objectPrefix
+	return nil
+}
+
+func (s *GameService) uploadThumbnail(title string, thumbnailHeader *multipart.FileHeader) (string, error) {
+	if thumbnailHeader == nil {
+		return "", nil
+	}
+
+	src, err := thumbnailHeader.Open()
+	if err != nil {
+		return "", err
+	}
+	defer src.Close()
+
+	contentType := thumbnailHeader.Header.Get("Content-Type")
+	if !strings.HasPrefix(contentType, "image/") {
+		contentType = mime.TypeByExtension(strings.ToLower(filepath.Ext(thumbnailHeader.Filename)))
+	}
+	if !strings.HasPrefix(contentType, "image/") {
+		return "", errors.New("thumbnail must be an image")
+	}
+
+	objectName := fmt.Sprintf("%s%s", helper.Slugify(title), strings.ToLower(filepath.Ext(thumbnailHeader.Filename)))
+	if err := s.minioStorage.UploadFile(s.minioStorage.ThumbnailBucket(), objectName, src, thumbnailHeader.Size, contentType); err != nil {
+		return "", err
+	}
+	return objectName, nil
+}
+
+func validateAndExtractGameArchive(zipPath string, extractDir string) error {
+	reader, err := zip.OpenReader(zipPath)
+	if err != nil {
+		return errors.New("invalid zip file")
+	}
+	defer reader.Close()
+	if len(reader.File) == 0 {
+		return errors.New("zip file is empty")
+	}
+
+	if err := helper.ExtractZip(zipPath, extractDir); err != nil {
+		return err
+	}
+	if !hasRootIndexHTML(extractDir) {
+		return errors.New("zip must contain index.html in root")
+	}
+	return normalizeExtractedAssetPaths(extractDir)
 }
 
 var cssURLPattern = regexp.MustCompile(`url\(\s*[^)\s]+\s*\)`)
