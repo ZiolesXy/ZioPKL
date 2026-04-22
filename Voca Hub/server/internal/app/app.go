@@ -70,6 +70,7 @@ func New() (*App, error) {
 	gameHandler := handler.NewGameHandler(gameService)
 	postHandler := handler.NewPostHandler(postService)
 	adminHandler := handler.NewAdminHandler(adminService, gameService)
+	userHandler := handler.NewUserHandler()
 
 	hub := websocket.NewHub(chatService)
 	websocket.SetRedisClient(redisClient)
@@ -141,6 +142,11 @@ func New() (*App, error) {
 			chat.GET("/ws", func(c *gin.Context) {
 				websocket.ServeWS(hub, c)
 			})
+		}
+
+		users := api.Group("/users")
+		{
+			users.GET("/me", userHandler.Me)
 		}
 
 		games := api.Group("/games")

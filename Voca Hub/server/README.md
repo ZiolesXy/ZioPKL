@@ -53,6 +53,7 @@
 - `GET /api/friends`
 - `GET /api/chat/history/:user_id`
 - `GET /api/chat/ws`
+- `GET /api/users/me`
 - `POST /api/games/upload`
 - `PUT /api/games/:id`
 - `GET /api/games`
