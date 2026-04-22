@@ -97,6 +97,10 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
+		profileURL, err := clerkClient.FetchProfileURL(clerkID)
+		if err != nil {
+			log.Fatal(err)
+		}
 
 		record := models.User{
 			ClerkID: clerkID,
@@ -106,6 +110,12 @@ func main() {
 					return nil
 				}
 				return &username
+			}(),
+			ProfileURL: func() *string {
+				if profileURL == "" {
+					return nil
+				}
+				return &profileURL
 			}(),
 			Role: user.Role,
 		}

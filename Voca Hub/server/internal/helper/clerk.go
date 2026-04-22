@@ -75,6 +75,7 @@ type ClerkClient struct {
 type ClerkUserProfile struct {
 	ID                    string `json:"id"`
 	Username              string `json:"username"`
+	ImageURL              string `json:"image_url"`
 	PrimaryEmailAddressID string `json:"primary_email_address_id"`
 	EmailAddresses        []struct {
 		ID           string `json:"id"`
@@ -193,6 +194,17 @@ func (c *ClerkClient) FetchUsername(clerkUserID string) (string, error) {
 		return "", nil
 	}
 	return strings.TrimSpace(profile.Username), nil
+}
+
+func (c *ClerkClient) FetchProfileURL(clerkUserID string) (string, error) {
+	profile, err := c.FetchUserProfile(clerkUserID)
+	if err != nil {
+		return "", err
+	}
+	if profile == nil {
+		return "", nil
+	}
+	return strings.TrimSpace(profile.ImageURL), nil
 }
 
 func (c *ClerkClient) FetchUserProfile(clerkUserID string) (*ClerkUserProfile, error) {

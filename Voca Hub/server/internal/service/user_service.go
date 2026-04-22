@@ -29,6 +29,10 @@ func (s *UserService) SyncUser(claims helper.ClerkClaims) (*models.User, error) 
 	if err != nil {
 		return nil, err
 	}
+	profileURL, err := s.resolveProfileURL(claims)
+	if err != nil {
+		return nil, err
+	}
 
 	user, err := s.userRepo.FindByClerkID(claims.ClerkID)
 	if err != nil {
@@ -42,6 +46,10 @@ func (s *UserService) SyncUser(claims helper.ClerkClaims) (*models.User, error) 
 		}
 		if username != "" && (user.Username == nil || strings.TrimSpace(*user.Username) == "") {
 			user.Username = &username
+			shouldSave = true
+		}
+		if profileURL != "" && (user.ProfileURL == nil || strings.TrimSpace(*user.ProfileURL) == "") {
+			user.ProfileURL = &profileURL
 			shouldSave = true
 		}
 		if shouldSave {
@@ -60,6 +68,12 @@ func (s *UserService) SyncUser(claims helper.ClerkClaims) (*models.User, error) 
 				return nil
 			}
 			return &username
+		}(),
+		ProfileURL: func() *string {
+			if profileURL == "" {
+				return nil
+			}
+			return &profileURL
 		}(),
 		Role: "USER",
 	}
@@ -88,4 +102,11 @@ func (s *UserService) resolveUsername(claims helper.ClerkClaims) (string, error)
 		return "", nil
 	}
 	return s.clerkClient.FetchUsername(claims.ClerkID)
+}
+
+func (s *UserService) resolveProfileURL(claims helper.ClerkClaims) (string, error) {
+	if s.clerkClient == nil {
+		return "", nil
+	}
+	return s.clerkClient.FetchProfileURL(claims.ClerkID)
 }
