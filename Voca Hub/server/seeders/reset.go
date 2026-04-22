@@ -85,6 +85,7 @@ func main() {
 		{Email: "eaglegaming3605@gmail.com", Role: "ADMIN"},
 		// {Email: "developer@example.com", Role: "DEVELOPER"},
 		{Email: "pashaprabasakti@gmail.com", Role: "USER"},
+		{Email: "abrilliantp738@gmail.com", Role: "USER"},
 	}
 
 	for _, user := range users {
