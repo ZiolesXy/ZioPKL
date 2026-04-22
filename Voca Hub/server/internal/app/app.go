@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"server/internal/database"
+	"server/internal/domain/dto"
 	"server/internal/handler"
 	"server/internal/helper"
 	"server/internal/middleware"
@@ -89,9 +90,7 @@ func New() (*App, error) {
 	})
 
 	router.GET("/health", func(c *gin.Context) {
-		helper.Success(c, http.StatusOK, "ok", gin.H{
-			"service": "server",
-		})
+		helper.Success(c, http.StatusOK, "ok", dto.HealthResponse{Service: "server"})
 	})
 
 	router.GET("/play/:id", gameHandler.ServeGameFile)

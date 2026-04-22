@@ -21,17 +21,17 @@ type UpdateGameRequest struct {
 }
 
 type GameResponse struct {
-	ID           uint              `json:"id"`
-	Title        string            `json:"title"`
-	Description  string            `json:"description"`
-	FileURL      string            `json:"file_url"`
-	ThumbnailURL string            `json:"thumbnail_url"`
-	DeveloperID  uint              `json:"developer_id"`
-	Status       string            `json:"status"`
-	CreatedAt    string            `json:"upload_at"`
-	Developer    models.User       `json:"developer"`
-	Difficulty   models.Difficulty `json:"difficulty"`
-	Categories   []models.Category `json:"categories"`
+	ID           uint               `json:"id"`
+	Title        string             `json:"title"`
+	Description  string             `json:"description"`
+	FileURL      string             `json:"file_url"`
+	ThumbnailURL string             `json:"thumbnail_url"`
+	DeveloperID  uint               `json:"developer_id"`
+	Status       string             `json:"status"`
+	CreatedAt    string             `json:"upload_at"`
+	Developer    UserResponse       `json:"developer"`
+	Difficulty   DifficultyResponse `json:"difficulty"`
+	Categories   []CategoryResponse `json:"categories"`
 }
 
 func BuildGameResponses(games []models.Game, buildThumbnailURL func(string) string) []GameResponse {
@@ -57,8 +57,8 @@ func BuildGameResponse(game *models.Game, buildThumbnailURL func(string) string)
 		DeveloperID:  game.DeveloperID,
 		Status:       game.Status,
 		CreatedAt:    game.CreatedAt.Format(time.RFC3339),
-		Developer:    game.Developer,
-		Difficulty:   game.Difficulty,
-		Categories:   game.Categories,
+		Developer:    BuildUserResponse(game.Developer),
+		Difficulty:   BuildDifficultyResponse(game.Difficulty),
+		Categories:   BuildCategoryResponses(game.Categories),
 	}
 }

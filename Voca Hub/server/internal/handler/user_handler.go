@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"server/internal/domain/dto"
 	"server/internal/helper"
 )
 
@@ -16,12 +17,5 @@ func NewUserHandler() *UserHandler {
 
 func (h *UserHandler) Me(c *gin.Context) {
 	user := helper.MustCurrentUser(c)
-	helper.Success(c, http.StatusOK, "current user fetched", gin.H{
-		"id":          user.ID,
-		"clerk_id":    user.ClerkID,
-		"email":       user.Email,
-		"username":    user.Username,
-		"profile_url": user.ProfileURL,
-		"role":        user.Role,
-	})
+	helper.Success(c, http.StatusOK, "current user fetched", dto.BuildUserResponse(*user))
 }

@@ -84,7 +84,7 @@ func (s *FriendService) RejectFriend(currentUserID uint, relationID uint) error 
 	return s.friendRepo.Update(relation)
 }
 
-func (s *FriendService) ListFriends(userID uint) ([]models.User, error) {
+func (s *FriendService) ListFriends(userID uint) ([]dto.UserResponse, error) {
 	relations, err := s.friendRepo.ListFriends(userID)
 	if err != nil {
 		return nil, err
@@ -98,7 +98,7 @@ func (s *FriendService) ListFriends(userID uint) ([]models.User, error) {
 		}
 		result = append(result, relation.User)
 	}
-	return result, nil
+	return dto.BuildUserResponses(result), nil
 }
 
 func (s *FriendService) ListPendingRequests(userID uint) ([]dto.PendingFriendRequestResponse, error) {

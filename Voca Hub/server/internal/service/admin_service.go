@@ -5,7 +5,7 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
-	"server/internal/domain/models"
+	"server/internal/domain/dto"
 	domainrepo "server/internal/domain/repository"
 )
 
@@ -13,13 +13,6 @@ type AdminService struct {
 	userRepo domainrepo.UserRepository
 	gameRepo domainrepo.GameRepository
 	redis    *redis.Client
-}
-
-type DashboardStats struct {
-	TotalUsers       int64 `json:"total_users"`
-	TotalDevelopers  int64 `json:"total_developers"`
-	TotalGames       int64 `json:"total_games"`
-	TotalActiveChats int64 `json:"total_active_chats"`
 }
 
 func NewAdminService(userRepo domainrepo.UserRepository, gameRepo domainrepo.GameRepository, redisClient *redis.Client) *AdminService {
@@ -30,7 +23,7 @@ func NewAdminService(userRepo domainrepo.UserRepository, gameRepo domainrepo.Gam
 	}
 }
 
-func (s *AdminService) Dashboard() (*DashboardStats, error) {
+func (s *AdminService) Dashboard() (*dto.DashboardStatsResponse, error) {
 	totalUsers, err := s.userRepo.CountAll()
 	if err != nil {
 		return nil, err
@@ -50,7 +43,7 @@ func (s *AdminService) Dashboard() (*DashboardStats, error) {
 		return nil, err
 	}
 
-	return &DashboardStats{
+	return &dto.DashboardStatsResponse{
 		TotalUsers:       totalUsers,
 		TotalDevelopers:  totalDevelopers,
 		TotalGames:       totalGames,
@@ -58,10 +51,18 @@ func (s *AdminService) Dashboard() (*DashboardStats, error) {
 	}, nil
 }
 
-func (s *AdminService) ListUsers() ([]models.User, error) {
-	return s.userRepo.List()
+func (s *AdminService) ListUsers() ([]dto.UserResponse, error) {
+	users, err := s.userRepo.List()
+	if err != nil {
+		return nil, err
+	}
+	return dto.BuildUserResponses(users), nil
 }
 
-func (s *AdminService) ListGames() ([]models.Game, error) {
-	return s.gameRepo.ListAll()
+func (s *AdminService) ListGames(buildThumbnailURL func(string) string) ([]dto.GameResponse, error) {
+	games, err := s.gameRepo.ListAll()
+	if err != nil {
+		return nil, err
+	}
+	return dto.BuildGameResponses(games, buildThumbnailURL), nil
 }

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 
+	"server/internal/domain/dto"
 	"server/internal/domain/models"
 	domainrepo "server/internal/domain/repository"
 )
@@ -16,7 +17,7 @@ func NewPostService(postRepo domainrepo.PostRepository) *PostService {
 	return &PostService{postRepo: postRepo}
 }
 
-func (s *PostService) Create(userID uint, content string) (*models.Post, error) {
+func (s *PostService) Create(userID uint, content string) (*dto.PostResponse, error) {
 	content = strings.TrimSpace(content)
 	if content == "" {
 		return nil, errors.New("content is required")
@@ -29,18 +30,30 @@ func (s *PostService) Create(userID uint, content string) (*models.Post, error) 
 	if err := s.postRepo.Create(post); err != nil {
 		return nil, err
 	}
-	return s.postRepo.FindByID(post.ID)
+	savedPost, err := s.postRepo.FindByID(post.ID)
+	if err != nil {
+		return nil, err
+	}
+	return buildPostDTO(savedPost), nil
 }
 
-func (s *PostService) ListAll() ([]models.Post, error) {
-	return s.postRepo.ListAll()
+func (s *PostService) ListAll() ([]dto.PostResponse, error) {
+	posts, err := s.postRepo.ListAll()
+	if err != nil {
+		return nil, err
+	}
+	return dto.BuildPostResponses(posts), nil
 }
 
-func (s *PostService) ListMine(userID uint) ([]models.Post, error) {
-	return s.postRepo.ListByUserID(userID)
+func (s *PostService) ListMine(userID uint) ([]dto.PostResponse, error) {
+	posts, err := s.postRepo.ListByUserID(userID)
+	if err != nil {
+		return nil, err
+	}
+	return dto.BuildPostResponses(posts), nil
 }
 
-func (s *PostService) GetByID(id uint) (*models.Post, error) {
+func (s *PostService) GetByID(id uint) (*dto.PostResponse, error) {
 	post, err := s.postRepo.FindByID(id)
 	if err != nil {
 		return nil, err
@@ -48,13 +61,16 @@ func (s *PostService) GetByID(id uint) (*models.Post, error) {
 	if post == nil {
 		return nil, errors.New("post not found")
 	}
-	return post, nil
+	return buildPostDTO(post), nil
 }
 
-func (s *PostService) Update(id uint, actor *models.User, content string) (*models.Post, error) {
-	post, err := s.GetByID(id)
+func (s *PostService) Update(id uint, actor *models.User, content string) (*dto.PostResponse, error) {
+	post, err := s.postRepo.FindByID(id)
 	if err != nil {
 		return nil, err
+	}
+	if post == nil {
+		return nil, errors.New("post not found")
 	}
 	if post.UserID != actor.ID {
 		return nil, errors.New("forbidden")
@@ -69,16 +85,32 @@ func (s *PostService) Update(id uint, actor *models.User, content string) (*mode
 	if err := s.postRepo.Update(post); err != nil {
 		return nil, err
 	}
-	return s.postRepo.FindByID(post.ID)
+	savedPost, err := s.postRepo.FindByID(post.ID)
+	if err != nil {
+		return nil, err
+	}
+	return buildPostDTO(savedPost), nil
 }
 
 func (s *PostService) Delete(id uint, actor *models.User) error {
-	post, err := s.GetByID(id)
+	post, err := s.postRepo.FindByID(id)
 	if err != nil {
 		return err
+	}
+	if post == nil {
+		return errors.New("post not found")
 	}
 	if actor.Role != "ADMIN" && post.UserID != actor.ID {
 		return errors.New("forbidden")
 	}
 	return s.postRepo.Delete(id)
+}
+
+func buildPostDTO(post *models.Post) *dto.PostResponse {
+	if post == nil {
+		return nil
+	}
+
+	response := dto.BuildPostResponse(*post)
+	return &response
 }

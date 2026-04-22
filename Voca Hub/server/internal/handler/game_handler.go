@@ -47,12 +47,12 @@ func (h *GameHandler) UploadGame(c *gin.Context) {
 	if gin.Mode() == gin.DebugMode {
 		log.Printf("upload requested by user id=%d clerk_id=%s role=%s", user.ID, user.ClerkID, user.Role)
 	}
-	game, err := h.gameService.UploadGame(user.ID, req.Title, req.Description, req.CategoryIDs, req.DifficultyID, file, thumbnail)
+	game, err := h.gameService.UploadGameResponse(user.ID, req.Title, req.Description, req.CategoryIDs, req.DifficultyID, file, thumbnail)
 	if err != nil {
 		helper.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	helper.Success(c, http.StatusCreated, "game uploaded", dto.BuildGameResponse(game, h.gameService.BuildThumbnailURL))
+	helper.Success(c, http.StatusCreated, "game uploaded", game)
 }
 
 func (h *GameHandler) UpdateGame(c *gin.Context) {
@@ -78,7 +78,7 @@ func (h *GameHandler) UpdateGame(c *gin.Context) {
 	}
 
 	user := helper.MustCurrentUser(c)
-	game, err := h.gameService.UpdateGame(uint(id), user, req.Title, req.Description, req.CategoryIDs, req.DifficultyID, file, thumbnail)
+	game, err := h.gameService.UpdateGameResponse(uint(id), user, req.Title, req.Description, req.CategoryIDs, req.DifficultyID, file, thumbnail)
 	if err != nil {
 		status := http.StatusBadRequest
 		if err.Error() == "game not found" {
@@ -90,28 +90,28 @@ func (h *GameHandler) UpdateGame(c *gin.Context) {
 		return
 	}
 
-	helper.Success(c, http.StatusOK, "game updated", dto.BuildGameResponse(game, h.gameService.BuildThumbnailURL))
+	helper.Success(c, http.StatusOK, "game updated", game)
 }
 
 func (h *GameHandler) ListApprovedGames(c *gin.Context) {
-	games, err := h.gameService.ListApprovedGames()
+	games, err := h.gameService.ListApprovedGameResponses()
 	if err != nil {
 		helper.Error(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	helper.Success(c, http.StatusOK, "approved games fetched", helper.WrapListIfNeeded(dto.BuildGameResponses(games, h.gameService.BuildThumbnailURL)))
+	helper.Success(c, http.StatusOK, "approved games fetched", helper.WrapListIfNeeded(games))
 }
 
 func (h *GameHandler) ListMyGames(c *gin.Context) {
 	user := helper.MustCurrentUser(c)
 
-	games, err := h.gameService.ListGamesByDeveloperID(user.ID)
+	games, err := h.gameService.ListGameResponsesByDeveloperID(user.ID)
 	if err != nil {
 		helper.Error(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	helper.Success(c, http.StatusOK, "user games fetched", helper.WrapListIfNeeded(dto.BuildGameResponses(games, h.gameService.BuildThumbnailURL)))
+	helper.Success(c, http.StatusOK, "user games fetched", helper.WrapListIfNeeded(games))
 }
 
 func (h *GameHandler) GetApprovedGame(c *gin.Context) {
@@ -120,12 +120,12 @@ func (h *GameHandler) GetApprovedGame(c *gin.Context) {
 		helper.Error(c, http.StatusBadRequest, "invalid id")
 		return
 	}
-	game, err := h.gameService.GetApprovedGame(uint(id))
+	game, err := h.gameService.GetApprovedGameResponse(uint(id))
 	if err != nil {
 		helper.Error(c, http.StatusNotFound, err.Error())
 		return
 	}
-	helper.Success(c, http.StatusOK, "game fetched", dto.BuildGameResponse(game, h.gameService.BuildThumbnailURL))
+	helper.Success(c, http.StatusOK, "game fetched", game)
 }
 
 func (h *GameHandler) PlayGame(c *gin.Context) {
@@ -134,12 +134,12 @@ func (h *GameHandler) PlayGame(c *gin.Context) {
 		helper.Error(c, http.StatusBadRequest, "invalid id")
 		return
 	}
-	url, err := h.gameService.PlayGame(uint(id))
+	url, err := h.gameService.PlayGameResponse(uint(id))
 	if err != nil {
 		helper.Error(c, http.StatusNotFound, err.Error())
 		return
 	}
-	helper.Success(c, http.StatusOK, "game ready", gin.H{"file_url": url})
+	helper.Success(c, http.StatusOK, "game ready", url)
 }
 
 func (h *GameHandler) ServeGameFile(c *gin.Context) {
@@ -361,7 +361,7 @@ func injectBaseHref(html string, baseHref string) string {
 }
 
 func (h *GameHandler) ListCategories(c *gin.Context) {
-	categories, err := h.gameService.ListCategories()
+	categories, err := h.gameService.ListCategoryResponses()
 	if err != nil {
 		helper.Error(c, http.StatusInternalServerError, err.Error())
 		return
@@ -370,7 +370,7 @@ func (h *GameHandler) ListCategories(c *gin.Context) {
 }
 
 func (h *GameHandler) ListDifficulties(c *gin.Context) {
-	difficulties, err := h.gameService.ListDifficulties()
+	difficulties, err := h.gameService.ListDifficultyResponses()
 	if err != nil {
 		helper.Error(c, http.StatusInternalServerError, err.Error())
 		return
@@ -379,15 +379,13 @@ func (h *GameHandler) ListDifficulties(c *gin.Context) {
 }
 
 func (h *GameHandler) CreateCategory(c *gin.Context) {
-	var req struct {
-		Name string `json:"name" binding:"required"`
-	}
+	var req dto.CategoryRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		helper.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	category, err := h.gameService.CreateCategory(req.Name)
+	category, err := h.gameService.CreateCategoryResponse(req.Name)
 	if err != nil {
 		helper.Error(c, http.StatusBadRequest, err.Error())
 		return
@@ -402,15 +400,13 @@ func (h *GameHandler) UpdateCategory(c *gin.Context) {
 		return
 	}
 
-	var req struct {
-		Name string `json:"name" binding:"required"`
-	}
+	var req dto.CategoryRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		helper.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	category, err := h.gameService.UpdateCategory(uint(id), req.Name)
+	category, err := h.gameService.UpdateCategoryResponse(uint(id), req.Name)
 	if err != nil {
 		status := http.StatusBadRequest
 		if err.Error() == "category not found" {

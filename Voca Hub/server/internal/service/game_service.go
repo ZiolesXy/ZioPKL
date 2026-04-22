@@ -14,6 +14,7 @@ import (
 	"slices"
 	"strings"
 
+	"server/internal/domain/dto"
 	"server/internal/domain/models"
 	domainrepo "server/internal/domain/repository"
 	"server/internal/helper"
@@ -136,6 +137,16 @@ func (s *GameService) UploadGame(developerID uint, title string, description str
 	return s.gameRepo.FindByID(game.ID)
 }
 
+func (s *GameService) UploadGameResponse(developerID uint, title string, description string, categoryIDs []uint, difficultyID uint, fileHeader *multipart.FileHeader, thumbnailHeader *multipart.FileHeader) (*dto.GameResponse, error) {
+	game, err := s.UploadGame(developerID, title, description, categoryIDs, difficultyID, fileHeader, thumbnailHeader)
+	if err != nil {
+		return nil, err
+	}
+
+	response := dto.BuildGameResponse(game, s.BuildThumbnailURL)
+	return &response, nil
+}
+
 func (s *GameService) UpdateGame(gameID uint, actor *models.User, title string, description string, categoryIDs []uint, difficultyID *uint, fileHeader *multipart.FileHeader, thumbnailHeader *multipart.FileHeader) (*models.Game, error) {
 	game, err := s.gameRepo.FindByID(gameID)
 	if err != nil {
@@ -189,8 +200,26 @@ func (s *GameService) UpdateGame(gameID uint, actor *models.User, title string, 
 	return s.gameRepo.FindByID(game.ID)
 }
 
+func (s *GameService) UpdateGameResponse(gameID uint, actor *models.User, title string, description string, categoryIDs []uint, difficultyID *uint, fileHeader *multipart.FileHeader, thumbnailHeader *multipart.FileHeader) (*dto.GameResponse, error) {
+	game, err := s.UpdateGame(gameID, actor, title, description, categoryIDs, difficultyID, fileHeader, thumbnailHeader)
+	if err != nil {
+		return nil, err
+	}
+
+	response := dto.BuildGameResponse(game, s.BuildThumbnailURL)
+	return &response, nil
+}
+
 func (s *GameService) ListApprovedGames() ([]models.Game, error) {
 	return s.gameRepo.ListApproved()
+}
+
+func (s *GameService) ListApprovedGameResponses() ([]dto.GameResponse, error) {
+	games, err := s.ListApprovedGames()
+	if err != nil {
+		return nil, err
+	}
+	return dto.BuildGameResponses(games, s.BuildThumbnailURL), nil
 }
 
 func (s *GameService) GetApprovedGame(id uint) (*models.Game, error) {
@@ -204,8 +233,26 @@ func (s *GameService) GetApprovedGame(id uint) (*models.Game, error) {
 	return game, nil
 }
 
+func (s *GameService) GetApprovedGameResponse(id uint) (*dto.GameResponse, error) {
+	game, err := s.GetApprovedGame(id)
+	if err != nil {
+		return nil, err
+	}
+
+	response := dto.BuildGameResponse(game, s.BuildThumbnailURL)
+	return &response, nil
+}
+
 func (s *GameService) ListGamesByDeveloperID(developerID uint) ([]models.Game, error) {
 	return s.gameRepo.ListByDeveloperID(developerID)
+}
+
+func (s *GameService) ListGameResponsesByDeveloperID(developerID uint) ([]dto.GameResponse, error) {
+	games, err := s.ListGamesByDeveloperID(developerID)
+	if err != nil {
+		return nil, err
+	}
+	return dto.BuildGameResponses(games, s.BuildThumbnailURL), nil
 }
 
 func (s *GameService) PlayGame(id uint) (string, error) {
@@ -220,6 +267,14 @@ func (s *GameService) PlayGame(id uint) (string, error) {
 	}
 
 	return fmt.Sprintf("/play/%d/", game.ID), nil
+}
+
+func (s *GameService) PlayGameResponse(id uint) (*dto.FileURLResponse, error) {
+	url, err := s.PlayGame(id)
+	if err != nil {
+		return nil, err
+	}
+	return &dto.FileURLResponse{FileURL: url}, nil
 }
 
 func (s *GameService) ListAllGames() ([]models.Game, error) {
@@ -254,8 +309,24 @@ func (s *GameService) ListCategories() ([]models.Category, error) {
 	return s.categoryRepo.ListAll()
 }
 
+func (s *GameService) ListCategoryResponses() ([]dto.CategoryResponse, error) {
+	categories, err := s.ListCategories()
+	if err != nil {
+		return nil, err
+	}
+	return dto.BuildCategoryResponses(categories), nil
+}
+
 func (s *GameService) ListDifficulties() ([]models.Difficulty, error) {
 	return s.difficultyRepo.ListAll()
+}
+
+func (s *GameService) ListDifficultyResponses() ([]dto.DifficultyResponse, error) {
+	difficulties, err := s.ListDifficulties()
+	if err != nil {
+		return nil, err
+	}
+	return dto.BuildDifficultyResponses(difficulties), nil
 }
 
 func (s *GameService) CreateCategory(name string) (*models.Category, error) {
@@ -269,6 +340,16 @@ func (s *GameService) CreateCategory(name string) (*models.Category, error) {
 		return nil, err
 	}
 	return category, nil
+}
+
+func (s *GameService) CreateCategoryResponse(name string) (*dto.CategoryResponse, error) {
+	category, err := s.CreateCategory(name)
+	if err != nil {
+		return nil, err
+	}
+
+	response := dto.BuildCategoryResponse(*category)
+	return &response, nil
 }
 
 func (s *GameService) UpdateCategory(id uint, name string) (*models.Category, error) {
@@ -290,6 +371,16 @@ func (s *GameService) UpdateCategory(id uint, name string) (*models.Category, er
 		return nil, err
 	}
 	return category, nil
+}
+
+func (s *GameService) UpdateCategoryResponse(id uint, name string) (*dto.CategoryResponse, error) {
+	category, err := s.UpdateCategory(id, name)
+	if err != nil {
+		return nil, err
+	}
+
+	response := dto.BuildCategoryResponse(*category)
+	return &response, nil
 }
 
 func (s *GameService) DeleteCategory(id uint) error {

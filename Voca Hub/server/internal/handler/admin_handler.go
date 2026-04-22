@@ -6,7 +6,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"server/internal/domain/dto"
 	"server/internal/helper"
 	"server/internal/service"
 )
@@ -42,12 +41,12 @@ func (h *AdminHandler) ListUsers(c *gin.Context) {
 }
 
 func (h *AdminHandler) ListGames(c *gin.Context) {
-	games, err := h.adminService.ListGames()
+	games, err := h.adminService.ListGames(h.gameService.BuildThumbnailURL)
 	if err != nil {
 		helper.Error(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	helper.Success(c, http.StatusOK, "games fetched", helper.WrapListIfNeeded(dto.BuildGameResponses(games, h.gameService.BuildThumbnailURL)))
+	helper.Success(c, http.StatusOK, "games fetched", helper.WrapListIfNeeded(games))
 }
 
 func (h *AdminHandler) ApproveGame(c *gin.Context) {

@@ -7,11 +7,11 @@ type AddFriendRequest struct {
 }
 
 type PendingFriendRequestResponse struct {
-	ID        uint        `json:"id"`
-	UserID    uint        `json:"user_id"`
-	FriendID  uint        `json:"friend_id"`
-	Status    string      `json:"status"`
-	Requester models.User `json:"requester"`
+	ID        uint         `json:"id"`
+	UserID    uint         `json:"user_id"`
+	FriendID  uint         `json:"friend_id"`
+	Status    string       `json:"status"`
+	Requester UserResponse `json:"requester"`
 }
 
 func BuildPendingFriendRequestResponses(relations []models.Friend) []PendingFriendRequestResponse {
@@ -28,6 +28,6 @@ func BuildPendingFriendRequestResponse(relation models.Friend) PendingFriendRequ
 		UserID:    relation.UserID,
 		FriendID:  relation.FriendID,
 		Status:    relation.Status,
-		Requester: relation.User,
+		Requester: BuildUserResponse(relation.User),
 	}
 }
