@@ -11,12 +11,10 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 
 	"server/internal/domain/dto"
-	"server/internal/domain/models"
 	"server/internal/helper"
 	"server/internal/service"
 )
@@ -54,7 +52,7 @@ func (h *GameHandler) UploadGame(c *gin.Context) {
 		helper.Error(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	helper.Success(c, http.StatusCreated, "game uploaded", presentGame(game, h.gameService))
+	helper.Success(c, http.StatusCreated, "game uploaded", dto.BuildGameResponse(game, h.gameService.BuildThumbnailURL))
 }
 
 func (h *GameHandler) UpdateGame(c *gin.Context) {
@@ -92,7 +90,7 @@ func (h *GameHandler) UpdateGame(c *gin.Context) {
 		return
 	}
 
-	helper.Success(c, http.StatusOK, "game updated", presentGame(game, h.gameService))
+	helper.Success(c, http.StatusOK, "game updated", dto.BuildGameResponse(game, h.gameService.BuildThumbnailURL))
 }
 
 func (h *GameHandler) ListApprovedGames(c *gin.Context) {
@@ -101,7 +99,7 @@ func (h *GameHandler) ListApprovedGames(c *gin.Context) {
 		helper.Error(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	helper.Success(c, http.StatusOK, "approved games fetched", helper.WrapListIfNeeded(presentGames(games, h.gameService)))
+	helper.Success(c, http.StatusOK, "approved games fetched", helper.WrapListIfNeeded(dto.BuildGameResponses(games, h.gameService.BuildThumbnailURL)))
 }
 
 func (h *GameHandler) ListMyGames(c *gin.Context) {
@@ -113,7 +111,7 @@ func (h *GameHandler) ListMyGames(c *gin.Context) {
 		return
 	}
 
-	helper.Success(c, http.StatusOK, "user games fetched", helper.WrapListIfNeeded(presentGames(games, h.gameService)))
+	helper.Success(c, http.StatusOK, "user games fetched", helper.WrapListIfNeeded(dto.BuildGameResponses(games, h.gameService.BuildThumbnailURL)))
 }
 
 func (h *GameHandler) GetApprovedGame(c *gin.Context) {
@@ -127,7 +125,7 @@ func (h *GameHandler) GetApprovedGame(c *gin.Context) {
 		helper.Error(c, http.StatusNotFound, err.Error())
 		return
 	}
-	helper.Success(c, http.StatusOK, "game fetched", presentGame(game, h.gameService))
+	helper.Success(c, http.StatusOK, "game fetched", dto.BuildGameResponse(game, h.gameService.BuildThumbnailURL))
 }
 
 func (h *GameHandler) PlayGame(c *gin.Context) {
@@ -440,42 +438,4 @@ func (h *GameHandler) DeleteCategory(c *gin.Context) {
 		return
 	}
 	helper.Success(c, http.StatusOK, "category deleted", nil)
-}
-
-type gameResponse struct {
-	ID           uint              `json:"id"`
-	Title        string            `json:"title"`
-	Description  string            `json:"description"`
-	FileURL      string            `json:"file_url"`
-	ThumbnailURL string            `json:"thumbnail_url"`
-	DeveloperID  uint              `json:"developer_id"`
-	Status       string            `json:"status"`
-	CreatedAt    string            `json:"upload_at"`
-	Developer    models.User       `json:"developer"`
-	Difficulty   models.Difficulty `json:"difficulty"`
-	Categories   []models.Category `json:"categories"`
-}
-
-func presentGames(games []models.Game, gameService *service.GameService) []gameResponse {
-	result := make([]gameResponse, 0, len(games))
-	for _, game := range games {
-		result = append(result, presentGame(&game, gameService))
-	}
-	return result
-}
-
-func presentGame(game *models.Game, gameService *service.GameService) gameResponse {
-	return gameResponse{
-		ID:           game.ID,
-		Title:        game.Title,
-		Description:  game.Description,
-		FileURL:      game.FileURL,
-		ThumbnailURL: gameService.BuildThumbnailURL(game.ThumbnailPath),
-		DeveloperID:  game.DeveloperID,
-		Status:       game.Status,
-		CreatedAt:    game.CreatedAt.Format(time.RFC3339),
-		Developer:    game.Developer,
-		Difficulty:   game.Difficulty,
-		Categories:   game.Categories,
-	}
 }
