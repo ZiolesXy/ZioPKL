@@ -45,7 +45,7 @@ func (h *GameHandler) UploadGame(c *gin.Context) {
 
 	user := helper.MustCurrentUser(c)
 	if gin.Mode() == gin.DebugMode {
-		log.Printf("upload requested by user id=%d clerk_id=%s role=%s", user.ID, user.ClerkID, user.Role)
+		log.Printf("upload requested by user id=%d role=%s", user.ID, user.Role)
 	}
 	game, err := h.gameService.UploadGameResponse(user.ID, req.Title, req.Description, req.CategoryIDs, req.DifficultyID, file, thumbnail)
 	if err != nil {

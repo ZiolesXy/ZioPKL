@@ -9,13 +9,13 @@
 - Redis
 - MinIO
 - WebSocket
-- Clerk
+- JWT
 - Docker
 
 ## Setup
 
 1. Copy `.env.example` to `.env`
-2. Update Clerk values, including `CLERK_SECRET_KEY`
+2. Update auth values, including `JWT_SECRET`, `ACCESS_TOKEN_TTL`, and `REFRESH_TOKEN_TTL`
 3. Set `CORS_ALLOWED_ORIGINS` with frontend origin list separated by commas when needed
 3. Choose one workflow:
 4. Full docker stack: `make docker-setup`
@@ -41,12 +41,22 @@
 
 ## Seeder Notes
 
-- `go run ./seeders/seed.go` and `go run ./seeders/reset.go` resolve `clerk_id` from Clerk using the configured user emails.
-- The seed emails must already exist as users in your Clerk instance.
+- `go run ./seeders/seed.go` and `go run ./seeders/reset.go` create local users using `SEED_USER_PASSWORD`.
+
+## Auth Notes
+
+- Access token and refresh token are issued locally with JWT.
+- Refresh token aktif disimpan di Redis sesuai TTL `REFRESH_TOKEN_TTL`.
+- Saat refresh berhasil, refresh token lama dihapus dan diganti token baru.
+- Saat logout, refresh token dihapus dari Redis dan access token dimasukkan ke blacklist Redis sampai expiry access token.
 
 ## Endpoints
 
 - `GET /health`
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `POST /api/auth/refresh`
+- `POST /api/auth/logout`
 - `POST /api/friends/request`
 - `POST /api/friends/:id/accept`
 - `POST /api/friends/:id/reject`

@@ -80,7 +80,8 @@ func main() {
 
 	gameDir, err := resolveGameSeedDir()
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("skip game seeding: %v", err)
+		return
 	}
 
 	zipFiles, err := filepath.Glob(filepath.Join(gameDir, "*.zip"))
@@ -173,12 +174,20 @@ func resolveSeederDeveloperID(db *gorm.DB) (uint, error) {
 	var user models.User
 
 	for _, role := range []string{"DEVELOPER", "ADMIN", "USER"} {
-		if err := db.Where("role = ?", role).First(&user).Error; err == nil {
+		result := db.Where("role = ?", role).Limit(1).Find(&user)
+		if result.Error != nil {
+			return 0, result.Error
+		}
+		if result.RowsAffected > 0 {
 			return user.ID, nil
 		}
 	}
 
-	if err := db.First(&user).Error; err == nil {
+	result := db.Limit(1).Find(&user)
+	if result.Error != nil {
+		return 0, result.Error
+	}
+	if result.RowsAffected > 0 {
 		return user.ID, nil
 	}
 

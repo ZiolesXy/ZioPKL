@@ -8,7 +8,6 @@ import (
 
 type UserResponse struct {
 	ID         uint    `json:"id"`
-	ClerkID    string  `json:"clerk_id"`
 	Email      string  `json:"email"`
 	Username   *string `json:"username"`
 	ProfileURL *string `json:"profile_url"`
@@ -27,7 +26,6 @@ func BuildUserResponses(users []models.User) []UserResponse {
 func BuildUserResponse(user models.User) UserResponse {
 	response := UserResponse{
 		ID:         user.ID,
-		ClerkID:    user.ClerkID,
 		Email:      user.Email,
 		Username:   user.Username,
 		ProfileURL: user.ProfileURL,

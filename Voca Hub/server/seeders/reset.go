@@ -39,7 +39,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	clerkClient := helper.NewClerkClient(cfg)
 
 	minioStorage, err := storage.NewMinIO(cfg)
 	if err != nil {
@@ -83,43 +82,22 @@ func main() {
 		Role  string
 	}{
 		{Email: "eaglegaming3605@gmail.com", Role: "ADMIN"},
-		// {Email: "developer@example.com", Role: "DEVELOPER"},
 		{Email: "pashaprabasakti@gmail.com", Role: "USER"},
 		{Email: "abrilliantp738@gmail.com", Role: "USER"},
 	}
 
 	for _, user := range users {
-		clerkID, err := clerkClient.FetchUserIDByEmail(user.Email)
-		if err != nil {
-			log.Fatal(err)
-		}
-		username, err := clerkClient.FetchUsername(clerkID)
-		if err != nil {
-			log.Fatal(err)
-		}
-		profileURL, err := clerkClient.FetchProfileURL(clerkID)
+		passwordHash, err := helper.HashPassword(cfg.SeedUserPassword)
 		if err != nil {
 			log.Fatal(err)
 		}
 
 		record := models.User{
-			ClerkID: clerkID,
-			Email:   user.Email,
-			Username: func() *string {
-				if username == "" {
-					return nil
-				}
-				return &username
-			}(),
-			ProfileURL: func() *string {
-				if profileURL == "" {
-					return nil
-				}
-				return &profileURL
-			}(),
-			Role: user.Role,
+			Email:        user.Email,
+			PasswordHash: passwordHash,
+			Role:         user.Role,
 		}
-		if err := db.Where("clerk_id = ?", clerkID).Assign(record).FirstOrCreate(&record).Error; err != nil {
+		if err := db.Where("email = ?", user.Email).Assign(record).FirstOrCreate(&record).Error; err != nil {
 			log.Fatal(err)
 		}
 	}
@@ -140,7 +118,8 @@ func main() {
 
 	gameDir, err := resetResolveGameSeedDir()
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("skip game seeding: %v", err)
+		return
 	}
 
 	zipFiles, err := filepath.Glob(filepath.Join(gameDir, "*.zip"))
@@ -235,12 +214,20 @@ func resetResolveSeederDeveloperID(db *gorm.DB) (uint, error) {
 	var user models.User
 
 	for _, role := range []string{"DEVELOPER", "ADMIN", "USER"} {
-		if err := db.Where("role = ?", role).First(&user).Error; err == nil {
+		result := db.Where("role = ?", role).Limit(1).Find(&user)
+		if result.Error != nil {
+			return 0, result.Error
+		}
+		if result.RowsAffected > 0 {
 			return user.ID, nil
 		}
 	}
 
-	if err := db.First(&user).Error; err == nil {
+	result := db.Limit(1).Find(&user)
+	if result.Error != nil {
+		return 0, result.Error
+	}
+	if result.RowsAffected > 0 {
 		return user.ID, nil
 	}
 

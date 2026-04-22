@@ -23,7 +23,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	clerkClient := helper.NewClerkClient(cfg)
 
 	if err := db.AutoMigrate(
 		&models.User{},
@@ -43,37 +42,17 @@ func main() {
 	}
 
 	for _, user := range users {
-		clerkID, err := clerkClient.FetchUserIDByEmail(user.Email)
-		if err != nil {
-			log.Fatal(err)
-		}
-		username, err := clerkClient.FetchUsername(clerkID)
-		if err != nil {
-			log.Fatal(err)
-		}
-		profileURL, err := clerkClient.FetchProfileURL(clerkID)
+		passwordHash, err := helper.HashPassword(cfg.SeedUserPassword)
 		if err != nil {
 			log.Fatal(err)
 		}
 
 		record := models.User{
-			ClerkID: clerkID,
-			Email:   user.Email,
-			Username: func() *string {
-				if username == "" {
-					return nil
-				}
-				return &username
-			}(),
-			ProfileURL: func() *string {
-				if profileURL == "" {
-					return nil
-				}
-				return &profileURL
-			}(),
-			Role: user.Role,
+			Email:        user.Email,
+			PasswordHash: passwordHash,
+			Role:         user.Role,
 		}
-		if err := db.Where("clerk_id = ?", clerkID).Assign(record).FirstOrCreate(&record).Error; err != nil {
+		if err := db.Where("email = ?", user.Email).Assign(record).FirstOrCreate(&record).Error; err != nil {
 			log.Fatal(err)
 		}
 	}

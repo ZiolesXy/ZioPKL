@@ -45,11 +45,10 @@ func New() (*App, error) {
 		return nil, err
 	}
 
-	clerkVerifier, err := helper.NewClerkVerifier(cfg)
+	tokenManager, err := helper.NewTokenManager(cfg)
 	if err != nil {
 		return nil, err
 	}
-	clerkClient := helper.NewClerkClient(cfg)
 
 	userRepo := repository.NewUserRepository(db)
 	friendRepo := repository.NewFriendRepository(db)
@@ -59,7 +58,9 @@ func New() (*App, error) {
 	difficultyRepo := repository.NewDifficultyRepository(db)
 	postRepo := repository.NewPostRepository(db)
 
-	userService := service.NewUserService(userRepo, clerkClient)
+	userService := service.NewUserService(userRepo)
+	tokenStore := service.NewTokenStoreService(redisClient)
+	authService := service.NewAuthService(userRepo, tokenManager, tokenStore)
 	friendService := service.NewFriendService(friendRepo, userRepo)
 	chatService := service.NewChatService(messageRepo, userRepo)
 	gameService := service.NewGameService(gameRepo, userRepo, categoryRepo, difficultyRepo, minioClient, cfg)
@@ -72,6 +73,7 @@ func New() (*App, error) {
 	postHandler := handler.NewPostHandler(postService)
 	adminHandler := handler.NewAdminHandler(adminService, gameService)
 	userHandler := handler.NewUserHandler()
+	authHandler := handler.NewAuthHandler(authService)
 
 	hub := websocket.NewHub(chatService)
 	websocket.SetRedisClient(redisClient)
@@ -81,7 +83,7 @@ func New() (*App, error) {
 	router.MaxMultipartMemory = 128 << 20
 
 	corsMiddleware := middleware.NewCORSMiddleware(cfg.CORSOrigins)
-	authMiddleware := middleware.NewClerkMiddleware(clerkVerifier, userService)
+	authMiddleware := middleware.NewAuthMiddleware(tokenManager, tokenStore, userService)
 	roleMiddleware := middleware.NewRoleMiddleware()
 
 	router.Use(corsMiddleware.Handle())
@@ -124,8 +126,17 @@ func New() (*App, error) {
 	})
 
 	api := router.Group("/api")
+	auth := api.Group("/auth")
+	{
+		auth.POST("/register", authHandler.Register)
+		auth.POST("/login", authHandler.Login)
+		auth.POST("/refresh", authHandler.Refresh)
+	}
+
 	api.Use(authMiddleware.Handle())
 	{
+		auth.POST("/logout", authHandler.Logout)
+
 		friend := api.Group("/friends")
 		{
 			friend.POST("/request", friendHandler.AddFriend)

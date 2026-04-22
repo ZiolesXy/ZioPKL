@@ -17,9 +17,9 @@ func NewUserRepository(db *gorm.DB) domainrepo.UserRepository {
 	return &userRepository{db: db}
 }
 
-func (r *userRepository) FindByClerkID(clerkID string) (*models.User, error) {
+func (r *userRepository) FindByEmail(email string) (*models.User, error) {
 	var user models.User
-	err := r.db.Where("clerk_id = ?", clerkID).First(&user).Error
+	err := r.db.Where("email = ?", email).First(&user).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
