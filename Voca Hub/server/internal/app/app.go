@@ -106,6 +106,8 @@ func New() (*App, error) {
 
 	router.GET("/games", gameHandler.ListApprovedGames)
 
+	router.GET("/posts", postHandler.List)
+
 	router.NoRoute(func(c *gin.Context) {
 		if strings.HasPrefix(c.Request.URL.Path, "/api") {
 			helper.Error(c, http.StatusNotFound, "endpoint tidak ditemukan")
@@ -130,6 +132,7 @@ func New() (*App, error) {
 			friend.POST("/:id/accept", friendHandler.AcceptFriend)
 			friend.POST("/:id/reject", friendHandler.RejectFriend)
 			friend.GET("", friendHandler.ListFriends)
+			friend.GET("/pending", friendHandler.ListPendingRequests)
 		}
 
 		chat := api.Group("/chat")
@@ -160,7 +163,6 @@ func New() (*App, error) {
 
 		posts := api.Group("/posts")
 		{
-			posts.GET("", postHandler.List)
 			posts.GET("/mine", postHandler.ListMine)
 			posts.GET("/:id", postHandler.GetByID)
 			posts.POST("", postHandler.Create)

@@ -8,4 +8,5 @@ type FriendRepository interface {
 	Create(friend *models.Friend) error
 	Update(friend *models.Friend) error
 	ListFriends(userID uint) ([]models.Friend, error)
+	ListPendingRequests(friendID uint) ([]models.Friend, error)
 }

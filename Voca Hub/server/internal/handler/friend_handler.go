@@ -71,3 +71,13 @@ func (h *FriendHandler) ListFriends(c *gin.Context) {
 	}
 	helper.Success(c, http.StatusOK, "friends fetched", helper.WrapListIfNeeded(friends))
 }
+
+func (h *FriendHandler) ListPendingRequests(c *gin.Context) {
+	user := helper.MustCurrentUser(c)
+	requests, err := h.friendService.ListPendingRequests(user.ID)
+	if err != nil {
+		helper.Error(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	helper.Success(c, http.StatusOK, "pending friend requests fetched", helper.WrapListIfNeeded(requests))
+}

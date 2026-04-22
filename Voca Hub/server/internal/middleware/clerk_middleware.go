@@ -27,6 +27,13 @@ func NewClerkMiddleware(verifier *helper.ClerkVerifier, userService *service.Use
 func (m *ClerkMiddleware) Handle() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token, err := helper.ExtractBearerToken(c.GetHeader("Authorization"))
+		if err != nil && isWebSocketRequest(c) {
+			queryToken := strings.TrimSpace(c.Query("token"))
+			if queryToken != "" {
+				token = queryToken
+				err = nil
+			}
+		}
 		if err != nil {
 			helper.Error(c, http.StatusUnauthorized, err.Error())
 			c.Abort()
@@ -68,6 +75,13 @@ func (m *ClerkMiddleware) Handle() gin.HandlerFunc {
 		c.Set(helper.ContextUserKey, user)
 		c.Next()
 	}
+}
+
+func isWebSocketRequest(c *gin.Context) bool {
+	upgrade := strings.TrimSpace(c.GetHeader("Upgrade"))
+	connection := strings.TrimSpace(c.GetHeader("Connection"))
+
+	return strings.EqualFold(upgrade, "websocket") || strings.Contains(strings.ToLower(connection), "upgrade")
 }
 
 func isDebugMode() bool {

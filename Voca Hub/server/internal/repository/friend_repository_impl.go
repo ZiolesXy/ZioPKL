@@ -59,3 +59,12 @@ func (r *friendRepository) ListFriends(userID uint) ([]models.Friend, error) {
 		Find(&relations).Error
 	return relations, err
 }
+
+func (r *friendRepository) ListPendingRequests(friendID uint) ([]models.Friend, error) {
+	var relations []models.Friend
+	err := r.db.Preload("User").Preload("Friend").
+		Where("status = ? AND friend_id = ?", "pending", friendID).
+		Order("id desc").
+		Find(&relations).Error
+	return relations, err
+}

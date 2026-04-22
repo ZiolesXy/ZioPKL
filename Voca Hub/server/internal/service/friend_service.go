@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 
+	"server/internal/domain/dto"
 	"server/internal/domain/models"
 	domainrepo "server/internal/domain/repository"
 )
@@ -98,4 +99,13 @@ func (s *FriendService) ListFriends(userID uint) ([]models.User, error) {
 		result = append(result, relation.User)
 	}
 	return result, nil
+}
+
+func (s *FriendService) ListPendingRequests(userID uint) ([]dto.PendingFriendRequestResponse, error) {
+	relations, err := s.friendRepo.ListPendingRequests(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return dto.BuildPendingFriendRequestResponses(relations), nil
 }
