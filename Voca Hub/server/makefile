@@ -32,10 +32,13 @@ compose-down:
 	docker compose down
 
 infra-up:
-	powershell -ExecutionPolicy Bypass -File scripts/setup.ps1
+	docker compose up -d
+# 	powershell -ExecutionPolicy Bypass -File scripts/setup.ps1
 
 infra-down:
-	powershell -ExecutionPolicy Bypass -File scripts/teardown.ps1
+	docker compose down
+	docker volume prune -f
+# 	powershell -ExecutionPolicy Bypass -File scripts/teardown.ps1
 
 infra-restart:
 	powershell -ExecutionPolicy Bypass -File scripts/teardown.ps1
