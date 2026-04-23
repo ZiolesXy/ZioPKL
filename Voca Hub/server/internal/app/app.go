@@ -10,14 +10,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"server/internal/database"
-	"server/internal/domain/dto"
-	"server/internal/handler"
-	"server/internal/helper"
-	"server/internal/middleware"
-	"server/internal/repository"
-	"server/internal/service"
-	"server/internal/storage"
 	"server/internal/websocket"
 )
 
@@ -28,180 +20,18 @@ type App struct {
 }
 
 func New() (*App, error) {
-	cfg := helper.LoadConfig()
-
-	db, err := database.NewPostgres(cfg)
+	container, err := NewContainer()
 	if err != nil {
 		return nil, err
 	}
 
-	redisClient, err := database.NewRedis(cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	minioClient, err := storage.NewMinIO(cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	tokenManager, err := helper.NewTokenManager(cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	userRepo := repository.NewUserRepository(db)
-	friendRepo := repository.NewFriendRepository(db)
-	messageRepo := repository.NewMessageRepository(db)
-	gameRepo := repository.NewGameRepository(db)
-	categoryRepo := repository.NewCategoryRepository(db)
-	difficultyRepo := repository.NewDifficultyRepository(db)
-	postRepo := repository.NewPostRepository(db)
-
-	userService := service.NewUserService(userRepo)
-	tokenStore := service.NewTokenStoreService(redisClient)
-	authService := service.NewAuthService(userRepo, tokenManager, tokenStore)
-	friendService := service.NewFriendService(friendRepo, userRepo)
-	chatService := service.NewChatService(messageRepo, userRepo)
-	gameService := service.NewGameService(gameRepo, userRepo, categoryRepo, difficultyRepo, minioClient, cfg)
-	postService := service.NewPostService(postRepo)
-	adminService := service.NewAdminService(userRepo, gameRepo, redisClient)
-	systemService := service.NewSystemService()
-
-	friendHandler := handler.NewFriendHandler(friendService)
-	chatHandler := handler.NewChatHandler(chatService)
-	gameHandler := handler.NewGameHandler(gameService)
-	postHandler := handler.NewPostHandler(postService)
-	adminHandler := handler.NewAdminHandler(adminService, gameService)
-	userHandler := handler.NewUserHandler()
-	authHandler := handler.NewAuthHandler(authService)
-	systemHandler := handler.NewSystemHandler(systemService)
-
-	hub := websocket.NewHub(chatService)
-	websocket.SetRedisClient(redisClient)
+	hub := websocket.NewHub(container.ChatService)
+	websocket.SetRedisClient(container.RedisClient)
 	go hub.Run()
 
-	router := gin.Default()
-	router.MaxMultipartMemory = 128 << 20
+	router := SetupRouter(container, hub)
 
-	corsMiddleware := middleware.NewCORSMiddleware(cfg.CORSOrigins)
-	authMiddleware := middleware.NewAuthMiddleware(tokenManager, tokenStore, userService)
-	roleMiddleware := middleware.NewRoleMiddleware()
-
-	router.Use(corsMiddleware.Handle())
-	router.GET("", func(c *gin.Context) {
-		helper.Success(c, http.StatusOK, "welcome to Voca Hub API", nil)
-	})
-
-	router.GET("/health", func(c *gin.Context) {
-		helper.Success(c, http.StatusOK, "ok", dto.HealthResponse{Service: "server"})
-	})
-
-	router.GET("/password", systemHandler.GetNewSecret)
-
-	router.GET("/play/:id", gameHandler.ServeGameFile)
-	router.GET("/play/:id/*filepath", gameHandler.ServeGameFile)
-	router.GET("/games/thumbnail/*filepath", gameHandler.ServeThumbnail)
-
-	router.GET("/categories", gameHandler.ListCategories)
-
-	difficulties := router.Group("/difficulties")
-	{
-		difficulties.GET("", gameHandler.ListDifficulties)
-	}
-
-	router.GET("/games", gameHandler.ListApprovedGames)
-
-	router.GET("/posts", postHandler.List)
-
-	router.NoRoute(func(c *gin.Context) {
-		if strings.HasPrefix(c.Request.URL.Path, "/api") {
-			helper.Error(c, http.StatusNotFound, "endpoint tidak ditemukan")
-			return
-		}
-
-		if strings.HasPrefix(c.Request.URL.Path, "/play") {
-			gameHandler.ServeRootAssetFallback(c)
-			return
-		}
-
-		// Fallback default jika tidak cocok keduanya
-		helper.Error(c, http.StatusNotFound, "endpoint tidak ditemukan")
-	})
-
-	api := router.Group("/api")
-	auth := api.Group("/auth")
-	{
-		auth.POST("/register", authHandler.Register)
-		auth.POST("/login", authHandler.Login)
-		auth.POST("/refresh", authHandler.Refresh)
-	}
-
-	api.Use(authMiddleware.Handle())
-	{
-		auth.POST("/logout", authHandler.Logout)
-
-		friend := api.Group("/friends")
-		{
-			friend.POST("/request", friendHandler.AddFriend)
-			friend.POST("/:id/accept", friendHandler.AcceptFriend)
-			friend.POST("/:id/reject", friendHandler.RejectFriend)
-			friend.GET("", friendHandler.ListFriends)
-			friend.GET("/pending", friendHandler.ListPendingRequests)
-		}
-
-		chat := api.Group("/chat")
-		{
-			chat.GET("/history/:user_id", chatHandler.GetHistory)
-			chat.GET("/ws", func(c *gin.Context) {
-				websocket.ServeWS(hub, c)
-			})
-		}
-
-		users := api.Group("/users")
-		{
-			users.GET("/me", userHandler.Me)
-		}
-
-		games := api.Group("/games")
-		{
-			games.GET("/mine", gameHandler.ListMyGames)
-			games.GET("/:id", gameHandler.GetApprovedGame)
-			games.GET("/:id/play", gameHandler.PlayGame)
-			games.Use(roleMiddleware.Require("USER", "DEVELOPER", "ADMIN"))
-			games.POST("/upload", gameHandler.UploadGame)
-			games.PUT("/:id", gameHandler.UpdateGame)
-		}
-
-		categories := api.Group("/categories")
-		{
-			categories.Use(roleMiddleware.Require("ADMIN"))
-			categories.POST("", gameHandler.CreateCategory)
-			categories.PUT("/:id", gameHandler.UpdateCategory)
-			categories.DELETE("/:id", gameHandler.DeleteCategory)
-		}
-
-		posts := api.Group("/posts")
-		{
-			posts.GET("/mine", postHandler.ListMine)
-			posts.GET("/:id", postHandler.GetByID)
-			posts.POST("", postHandler.Create)
-			posts.PUT("/:id", postHandler.Update)
-			posts.DELETE("/:id", postHandler.Delete)
-		}
-
-		admin := api.Group("/admin")
-		admin.Use(roleMiddleware.Require("ADMIN"))
-		{
-			admin.GET("/dashboard", adminHandler.Dashboard)
-			admin.GET("/users", adminHandler.ListUsers)
-			admin.GET("/games", adminHandler.ListGames)
-			admin.POST("/games/:id/approve", adminHandler.ApproveGame)
-			admin.POST("/games/:id/reject", adminHandler.RejectGame)
-		}
-	}
-
-	addr := fmt.Sprintf(":%s", strings.TrimSpace(cfg.AppPort))
+	addr := fmt.Sprintf(":%s", strings.TrimSpace(container.Config.AppPort))
 	server := &http.Server{
 		Addr:              addr,
 		Handler:           router,
