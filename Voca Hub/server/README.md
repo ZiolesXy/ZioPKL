@@ -16,6 +16,7 @@
 
 1. Copy `.env.example` to `.env`
 2. Update auth values, including `JWT_SECRET`, `ACCESS_TOKEN_TTL`, and `REFRESH_TOKEN_TTL`
+   Auth TTL format supports only `<angka><unit>` with unit `s`, `m`, `h`, or `d`, for example `15m`, `24h`, `7d`
 3. Set `CORS_ALLOWED_ORIGINS` with frontend origin list separated by commas when needed
 3. Choose one workflow:
 4. Full docker stack: `make docker-setup`

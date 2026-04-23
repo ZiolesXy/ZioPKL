@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -361,12 +362,39 @@ func getEnvAsDuration(key string, fallback time.Duration) time.Duration {
 		return fallback
 	}
 
-	duration, err := time.ParseDuration(value)
-	if err != nil {
+	duration, ok := parseSupportedDuration(value)
+	if !ok {
 		return fallback
 	}
 
 	return duration
+}
+
+var supportedDurationPattern = regexp.MustCompile(`^(\d+)([smhdSMHD])$`)
+
+func parseSupportedDuration(value string) (time.Duration, bool) {
+	matches := supportedDurationPattern.FindStringSubmatch(strings.TrimSpace(value))
+	if len(matches) != 3 {
+		return 0, false
+	}
+
+	amount, err := strconv.ParseInt(matches[1], 10, 64)
+	if err != nil || amount < 0 {
+		return 0, false
+	}
+
+	switch strings.ToLower(matches[2]) {
+	case "s":
+		return time.Duration(amount) * time.Second, true
+	case "m":
+		return time.Duration(amount) * time.Minute, true
+	case "h":
+		return time.Duration(amount) * time.Hour, true
+	case "d":
+		return time.Duration(amount) * 24 * time.Hour, true
+	default:
+		return 0, false
+	}
 }
 
 func HTTPClient() *http.Client {
