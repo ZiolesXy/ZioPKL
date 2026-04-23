@@ -67,16 +67,9 @@ start:
 	go run cmd/main.go
 
 # Redis (Standalone Redis, not inside compose)
-redis-start:
-	docker run -d --name $(REDIS_CONTAINER) -p 6379:6379 redis:7
+infra-up:
+	docker compose up -d
 
-redis-run:
-	docker start $(REDIS_CONTAINER)
-
-redis-stop:
-	docker stop $(REDIS_CONTAINER)
-
-redis-remove:
-	docker stop $(REDIS_CONTAINER) || true
-	docker rm $(REDIS_CONTAINER) || true
+infra-down:
+	docker compose down
 	docker volume prune -f
