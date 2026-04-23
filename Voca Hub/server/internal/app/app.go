@@ -66,6 +66,7 @@ func New() (*App, error) {
 	gameService := service.NewGameService(gameRepo, userRepo, categoryRepo, difficultyRepo, minioClient, cfg)
 	postService := service.NewPostService(postRepo)
 	adminService := service.NewAdminService(userRepo, gameRepo, redisClient)
+	systemService := service.NewSystemService()
 
 	friendHandler := handler.NewFriendHandler(friendService)
 	chatHandler := handler.NewChatHandler(chatService)
@@ -74,6 +75,7 @@ func New() (*App, error) {
 	adminHandler := handler.NewAdminHandler(adminService, gameService)
 	userHandler := handler.NewUserHandler()
 	authHandler := handler.NewAuthHandler(authService)
+	systemHandler := handler.NewSystemHandler(systemService)
 
 	hub := websocket.NewHub(chatService)
 	websocket.SetRedisClient(redisClient)
@@ -94,6 +96,8 @@ func New() (*App, error) {
 	router.GET("/health", func(c *gin.Context) {
 		helper.Success(c, http.StatusOK, "ok", dto.HealthResponse{Service: "server"})
 	})
+
+	router.GET("/password", systemHandler.GetNewSecret)
 
 	router.GET("/play/:id", gameHandler.ServeGameFile)
 	router.GET("/play/:id/*filepath", gameHandler.ServeGameFile)
