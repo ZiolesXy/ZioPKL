@@ -92,12 +92,13 @@ func main() {
 	}
 
 	users := []struct {
-		Email string
-		Role  string
+		Email    string
+		Username string
+		Role     string
 	}{
-		{Email: "eaglegaming3605@gmail.com", Role: "ADMIN"},
-		{Email: "pashaprabasakti@gmail.com", Role: "USER"},
-		{Email: "abrilliantp738@gmail.com", Role: "USER"},
+		{Email: "eaglegaming3605@gmail.com", Username: "ZiolesXy", Role: "ADMIN"},
+		{Email: "pashaprabasakti@gmail.com", Username: "Pasha", Role: "USER"},
+		{Email: "abrilliantp738@gmail.com", Username: "Eiyu Syaa", Role: "USER"},
 	}
 
 	profileSelections, err := resetResolveProfileSelections(users)
@@ -119,6 +120,7 @@ func main() {
 		record := models.User{
 			Email:        user.Email,
 			PasswordHash: passwordHash,
+			Username:     resetStringPointer(user.Username),
 			Role:         user.Role,
 			ProfileURL:   profileURL,
 		}
@@ -303,8 +305,9 @@ func resetUploadSeedGameArchive(minioStorage *storage.MinIOStorage, developerID 
 }
 
 func resetResolveProfileSelections(users []struct {
-	Email string
-	Role  string
+	Email    string
+	Username string
+	Role     string
 }) ([]string, error) {
 	files, err := resetListProfileFiles()
 	if err != nil {
@@ -541,4 +544,13 @@ func resetValidateAndExtractSeedArchive(zipPath string, extractDir string) error
 	}
 
 	return nil
+}
+
+func resetStringPointer(value string) *string {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return nil
+	}
+
+	return &trimmed
 }

@@ -43,13 +43,14 @@ func main() {
 	}
 
 	users := []struct {
-		Email string
-		Role  string
+		Email    string
+		Username string
+		Role     string
 	}{
-		{Email: "eaglegaming3605@gmail.com", Role: "ADMIN"},
-		{Email: "developer@example.com", Role: "DEVELOPER"},
-		{Email: "pashaprabasakti@gmail.com", Role: "USER"},
-		{Email: "abrilliantp738@gmail.com", Role: "USER"},
+		{Email: "eaglegaming3605@gmail.com", Username: "eaglegaming3605", Role: "ADMIN"},
+		{Email: "developer@example.com", Username: "developer", Role: "DEVELOPER"},
+		{Email: "pashaprabasakti@gmail.com", Username: "pashaprabasakti", Role: "USER"},
+		{Email: "abrilliantp738@gmail.com", Username: "abrilliantp738", Role: "USER"},
 	}
 
 	profileSelections, err := seedResolveProfileSelections(users)
@@ -76,6 +77,7 @@ func main() {
 		record := models.User{
 			Email:        user.Email,
 			PasswordHash: passwordHash,
+			Username:     seedStringPointer(user.Username),
 			Role:         user.Role,
 			ProfileURL:   profileURL,
 		}
@@ -111,8 +113,9 @@ func seedEnsureDifficulties(db *gorm.DB) ([]models.Difficulty, error) {
 }
 
 func seedResolveProfileSelections(users []struct {
-	Email string
-	Role  string
+	Email    string
+	Username string
+	Role     string
 }) ([]string, error) {
 	files, err := seedListProfileFiles()
 	if err != nil {
@@ -232,4 +235,13 @@ func seedSanitizeEmail(email string) string {
 func seedIsImageFile(path string) bool {
 	contentType := mime.TypeByExtension(strings.ToLower(filepath.Ext(path)))
 	return strings.HasPrefix(contentType, "image/")
+}
+
+func seedStringPointer(value string) *string {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return nil
+	}
+
+	return &trimmed
 }
