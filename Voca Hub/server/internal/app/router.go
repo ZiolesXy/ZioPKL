@@ -56,18 +56,22 @@ func SetupRouter(container *Container, hub *websocket.Hub) *gin.Engine {
 	})
 
 	api := router.Group("/api")
-	auth := api.Group("/auth")
+	publicAuth := api.Group("/auth")
 	{
-		auth.POST("/register", container.AuthHandler.Register)
-		auth.POST("/login", container.AuthHandler.Login)
-		auth.POST("/refresh", container.AuthHandler.Refresh)
+		publicAuth.POST("/register", container.AuthHandler.Register)
+		publicAuth.POST("/login", container.AuthHandler.Login)
+		publicAuth.POST("/refresh", container.AuthHandler.Refresh)
 	}
 
-	api.Use(container.AuthMiddleware.Handle())
+	protected := router.Group("/api")
+	protected.Use(container.AuthMiddleware.Handle())
 	{
-		auth.POST("/logout", container.AuthHandler.Logout)
+		protectedAuth := protected.Group("/auth")
+		{
+			protectedAuth.POST("/logout", container.AuthHandler.Logout)
+		}
 
-		friend := api.Group("/friends")
+		friend := protected.Group("/friends")
 		{
 			friend.POST("/request", container.FriendHandler.AddFriend)
 			friend.POST("/:id/accept", container.FriendHandler.AcceptFriend)
@@ -76,7 +80,7 @@ func SetupRouter(container *Container, hub *websocket.Hub) *gin.Engine {
 			friend.GET("/pending", container.FriendHandler.ListPendingRequests)
 		}
 
-		chat := api.Group("/chat")
+		chat := protected.Group("/chat")
 		{
 			chat.GET("/history/:user_id", container.ChatHandler.GetHistory)
 			chat.GET("/ws", func(c *gin.Context) {
@@ -84,12 +88,12 @@ func SetupRouter(container *Container, hub *websocket.Hub) *gin.Engine {
 			})
 		}
 
-		users := api.Group("/users")
+		users := protected.Group("/users")
 		{
 			users.GET("/me", container.UserHandler.Me)
 		}
 
-		games := api.Group("/games")
+		games := protected.Group("/games")
 		{
 			games.GET("/mine", container.GameHandler.ListMyGames)
 			games.GET("/:id", container.GameHandler.GetApprovedGame)
@@ -99,7 +103,7 @@ func SetupRouter(container *Container, hub *websocket.Hub) *gin.Engine {
 			games.PUT("/:id", container.GameHandler.UpdateGame)
 		}
 
-		categories := api.Group("/categories")
+		categories := protected.Group("/categories")
 		{
 			categories.Use(container.RoleMiddleware.Require("ADMIN"))
 			categories.POST("", container.GameHandler.CreateCategory)
@@ -107,7 +111,7 @@ func SetupRouter(container *Container, hub *websocket.Hub) *gin.Engine {
 			categories.DELETE("/:id", container.GameHandler.DeleteCategory)
 		}
 
-		posts := api.Group("/posts")
+		posts := protected.Group("/posts")
 		{
 			posts.GET("/mine", container.PostHandler.ListMine)
 			posts.GET("/:id", container.PostHandler.GetByID)
@@ -116,7 +120,7 @@ func SetupRouter(container *Container, hub *websocket.Hub) *gin.Engine {
 			posts.DELETE("/:id", container.PostHandler.Delete)
 		}
 
-		admin := api.Group("/admin")
+		admin := protected.Group("/admin")
 		admin.Use(container.RoleMiddleware.Require("ADMIN"))
 		{
 			admin.GET("/dashboard", container.AdminHandler.Dashboard)

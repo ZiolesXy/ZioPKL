@@ -2,6 +2,7 @@ package main
 
 import (
 	"archive/zip"
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -40,8 +41,18 @@ func main() {
 		log.Fatal(err)
 	}
 
+	redisClient, err := database.NewRedis(cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer redisClient.Close()
+
 	minioStorage, err := storage.NewMinIO(cfg)
 	if err != nil {
+		log.Fatal(err)
+	}
+
+	if err := redisClient.FlushDB(context.Background()).Err(); err != nil {
 		log.Fatal(err)
 	}
 
