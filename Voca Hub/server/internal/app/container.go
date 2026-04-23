@@ -74,7 +74,7 @@ func NewContainer() (*Container, error) {
 	difficultyRepo := repository.NewDifficultyRepository(db)
 	postRepo := repository.NewPostRepository(db)
 
-	userService := service.NewUserService(userRepo)
+	userService := service.NewUserService(userRepo, minioClient)
 	tokenStore := service.NewTokenStoreService(redisClient)
 	authService := service.NewAuthService(userRepo, tokenManager, tokenStore)
 	friendService := service.NewFriendService(friendRepo, userRepo)
@@ -102,7 +102,7 @@ func NewContainer() (*Container, error) {
 		SystemService: systemService,
 
 		AuthHandler:   handler.NewAuthHandler(authService),
-		UserHandler:   handler.NewUserHandler(),
+		UserHandler:   handler.NewUserHandler(userService),
 		FriendHandler: handler.NewFriendHandler(friendService),
 		ChatHandler:   handler.NewChatHandler(chatService),
 		GameHandler:   handler.NewGameHandler(gameService),

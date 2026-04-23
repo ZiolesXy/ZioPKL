@@ -21,6 +21,7 @@ type MinIOStorage struct {
 	client          *minio.Client
 	bucket          string
 	thumbnailBucket string
+	profileBucket   string
 	baseURL         string
 	endpoint        string
 	useSSL          bool
@@ -36,7 +37,7 @@ func NewMinIO(cfg helper.Config) (*MinIOStorage, error) {
 	}
 
 	ctx := context.Background()
-	for _, bucket := range []string{cfg.MinIOBucket, cfg.MinIOThumbnailBucket} {
+	for _, bucket := range []string{cfg.MinIOBucket, cfg.MinIOThumbnailBucket, cfg.MinIOProfileBucket} {
 		exists, err := client.BucketExists(ctx, bucket)
 		if err != nil {
 			return nil, err
@@ -52,6 +53,7 @@ func NewMinIO(cfg helper.Config) (*MinIOStorage, error) {
 		client:          client,
 		bucket:          cfg.MinIOBucket,
 		thumbnailBucket: cfg.MinIOThumbnailBucket,
+		profileBucket:   cfg.MinIOProfileBucket,
 		baseURL:         cfg.StorageBaseURL,
 		endpoint:        cfg.MinIOEndpoint,
 		useSSL:          cfg.MinIOUseSSL,
@@ -96,8 +98,16 @@ func (s *MinIOStorage) BuildThumbnailURL(objectName string) string {
 	return s.buildBucketObjectURL(s.thumbnailBucket, objectName)
 }
 
+func (s *MinIOStorage) BuildProfileURL(objectName string) string {
+	return s.buildBucketObjectURL(s.profileBucket, objectName)
+}
+
 func (s *MinIOStorage) ThumbnailBucket() string {
 	return s.thumbnailBucket
+}
+
+func (s *MinIOStorage) ProfileBucket() string {
+	return s.profileBucket
 }
 
 func (s *MinIOStorage) buildBucketObjectURL(bucket string, objectName string) string {
@@ -120,6 +130,14 @@ func (s *MinIOStorage) PresignedObjectURL(objectName string, expiry time.Duratio
 }
 
 func (s *MinIOStorage) ExtractObjectPrefix(value string) string {
+	return s.extractObjectName(s.bucket, value)
+}
+
+func (s *MinIOStorage) ExtractProfileObjectName(value string) string {
+	return s.extractObjectName(s.profileBucket, value)
+}
+
+func (s *MinIOStorage) extractObjectName(bucket string, value string) string {
 	trimmed := strings.TrimSpace(value)
 	if trimmed == "" {
 		return ""
@@ -135,8 +153,8 @@ func (s *MinIOStorage) ExtractObjectPrefix(value string) string {
 	}
 
 	path := strings.Trim(parsed.Path, "/")
-	if s.bucket != "" && strings.HasPrefix(path, s.bucket+"/") {
-		return strings.TrimPrefix(path, s.bucket+"/")
+	if bucket != "" && strings.HasPrefix(path, bucket+"/") {
+		return strings.TrimPrefix(path, bucket+"/")
 	}
 	return path
 }
@@ -147,6 +165,10 @@ func (s *MinIOStorage) GetObject(objectName string) (*minio.Object, minio.Object
 
 func (s *MinIOStorage) GetThumbnailObject(objectName string) (*minio.Object, minio.ObjectInfo, error) {
 	return s.getObjectFromBucket(s.thumbnailBucket, objectName)
+}
+
+func (s *MinIOStorage) GetProfileObject(objectName string) (*minio.Object, minio.ObjectInfo, error) {
+	return s.getObjectFromBucket(s.profileBucket, objectName)
 }
 
 func (s *MinIOStorage) getObjectFromBucket(bucket string, objectName string) (*minio.Object, minio.ObjectInfo, error) {
@@ -179,6 +201,14 @@ func (s *MinIOStorage) ClearThumbnailBucket() error {
 	return s.clearBucket(s.thumbnailBucket)
 }
 
+func (s *MinIOStorage) ClearProfileBucket() error {
+	return s.clearBucket(s.profileBucket)
+}
+
+func (s *MinIOStorage) RemoveProfileObject(objectName string) error {
+	return s.removeObject(s.profileBucket, objectName)
+}
+
 func (s *MinIOStorage) clearBucket(bucket string) error {
 	ctx := context.Background()
 	objects := s.client.ListObjects(ctx, bucket, minio.ListObjectsOptions{
@@ -192,4 +222,12 @@ func (s *MinIOStorage) clearBucket(bucket string) error {
 	}
 
 	return nil
+}
+
+func (s *MinIOStorage) removeObject(bucket string, objectName string) error {
+	if strings.TrimSpace(objectName) == "" {
+		return nil
+	}
+
+	return s.client.RemoveObject(context.Background(), bucket, objectName, minio.RemoveObjectOptions{})
 }

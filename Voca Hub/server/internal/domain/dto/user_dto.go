@@ -1,6 +1,8 @@
 package dto
 
 import (
+	"net/url"
+	"strings"
 	"time"
 
 	"server/internal/domain/models"
@@ -15,6 +17,10 @@ type UserResponse struct {
 	CreatedAt  string  `json:"created_at,omitempty"`
 }
 
+type UpdateProfileRequest struct {
+	Username *string `form:"username"`
+}
+
 func BuildUserResponses(users []models.User) []UserResponse {
 	result := make([]UserResponse, 0, len(users))
 	for _, user := range users {
@@ -24,11 +30,13 @@ func BuildUserResponses(users []models.User) []UserResponse {
 }
 
 func BuildUserResponse(user models.User) UserResponse {
+	profileURL := buildProfileURL(user.ProfileURL)
+
 	response := UserResponse{
 		ID:         user.ID,
 		Email:      user.Email,
 		Username:   user.Username,
-		ProfileURL: user.ProfileURL,
+		ProfileURL: profileURL,
 		Role:       user.Role,
 	}
 
@@ -37,4 +45,24 @@ func BuildUserResponse(user models.User) UserResponse {
 	}
 
 	return response
+}
+
+func buildProfileURL(profilePath *string) *string {
+	if profilePath == nil {
+		return nil
+	}
+
+	trimmed := strings.TrimSpace(*profilePath)
+	if trimmed == "" {
+		return nil
+	}
+	if strings.Contains(trimmed, "://") {
+		parsed, err := url.Parse(trimmed)
+		if err == nil {
+			trimmed = parsed.Path
+		}
+	}
+
+	url := "/users/profile/" + strings.TrimLeft(trimmed, "/")
+	return &url
 }

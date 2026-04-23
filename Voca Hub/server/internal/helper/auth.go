@@ -47,6 +47,7 @@ type Config struct {
 	MinIOSecretKey       string
 	MinIOBucket          string
 	MinIOThumbnailBucket string
+	MinIOProfileBucket   string
 	MinIOUseSSL          bool
 	StorageBaseURL       string
 	JWTSecret            string
@@ -105,6 +106,7 @@ func LoadConfig() Config {
 		MinIOSecretKey:       getEnv("MINIO_SECRET_KEY", "minioadmin"),
 		MinIOBucket:          getEnv("MINIO_BUCKET", "games"),
 		MinIOThumbnailBucket: getEnv("MINIO_THUMBNAIL_BUCKET", "thumbnails"),
+		MinIOProfileBucket:   getEnv("MINIO_PROFILE_BUCKET", "profiles"),
 		MinIOUseSSL:          getEnvAsBool("MINIO_USE_SSL", false),
 		StorageBaseURL:       getEnv("STORAGE_BASE_URL", ""),
 		JWTSecret:            getEnv("JWT_SECRET", "change-me"),

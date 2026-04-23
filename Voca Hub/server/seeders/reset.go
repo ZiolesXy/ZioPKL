@@ -87,6 +87,9 @@ func main() {
 	if err := minioStorage.ClearThumbnailBucket(); err != nil {
 		log.Fatal(err)
 	}
+	if err := minioStorage.ClearProfileBucket(); err != nil {
+		log.Fatal(err)
+	}
 
 	users := []struct {
 		Email string
@@ -97,8 +100,18 @@ func main() {
 		{Email: "abrilliantp738@gmail.com", Role: "USER"},
 	}
 
-	for _, user := range users {
+	profileSelections, err := resetResolveProfileSelections(users)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for index, user := range users {
 		passwordHash, err := helper.HashPassword(cfg.SeedUserPassword)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		profileURL, err := resetUploadProfile(minioStorage, user.Email, profileSelections[index])
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -107,6 +120,7 @@ func main() {
 			Email:        user.Email,
 			PasswordHash: passwordHash,
 			Role:         user.Role,
+			ProfileURL:   profileURL,
 		}
 		if err := db.Where("email = ?", user.Email).Assign(record).FirstOrCreate(&record).Error; err != nil {
 			log.Fatal(err)
@@ -286,6 +300,115 @@ func resetUploadSeedGameArchive(minioStorage *storage.MinIOStorage, developerID 
 	}
 
 	return objectPrefix, nil
+}
+
+func resetResolveProfileSelections(users []struct {
+	Email string
+	Role  string
+}) ([]string, error) {
+	files, err := resetListProfileFiles()
+	if err != nil {
+		return nil, err
+	}
+
+	selections := make([]string, len(users))
+	if len(files) == 0 {
+		return selections, nil
+	}
+
+	defaultFile := resetFindDefaultProfile(files)
+	if defaultFile != "" {
+		for index := range selections {
+			selections[index] = defaultFile
+		}
+		return selections, nil
+	}
+
+	for index := range selections {
+		if index < len(files) {
+			selections[index] = files[index]
+		}
+	}
+
+	return selections, nil
+}
+
+func resetListProfileFiles() ([]string, error) {
+	profileDir := filepath.Join("seeders", "profile")
+	entries, err := os.ReadDir(profileDir)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	files := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		path := filepath.Join(profileDir, entry.Name())
+		if !resetIsImageFile(path) {
+			continue
+		}
+
+		files = append(files, path)
+	}
+
+	slices.Sort(files)
+	return files, nil
+}
+
+func resetFindDefaultProfile(files []string) string {
+	for _, file := range files {
+		name := strings.ToLower(strings.TrimSpace(strings.TrimSuffix(filepath.Base(file), filepath.Ext(file))))
+		if strings.HasPrefix(name, "default") {
+			return file
+		}
+	}
+	return ""
+}
+
+func resetUploadProfile(minioStorage *storage.MinIOStorage, email string, sourcePath string) (*string, error) {
+	if strings.TrimSpace(sourcePath) == "" {
+		return nil, nil
+	}
+
+	file, err := os.Open(sourcePath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	ext := strings.ToLower(filepath.Ext(sourcePath))
+	objectName := "seed/users/" + resetSanitizeEmail(email) + ext
+	contentType := mime.TypeByExtension(ext)
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+
+	info, err := file.Stat()
+	if err != nil {
+		return nil, err
+	}
+
+	if err := minioStorage.UploadFile(minioStorage.ProfileBucket(), objectName, file, info.Size(), contentType); err != nil {
+		return nil, err
+	}
+
+	return &objectName, nil
+}
+
+func resetSanitizeEmail(email string) string {
+	replacer := strings.NewReplacer("@", "-at-", ".", "-", "_", "-", "+", "-plus-")
+	return replacer.Replace(strings.ToLower(strings.TrimSpace(email)))
+}
+
+func resetIsImageFile(path string) bool {
+	contentType := mime.TypeByExtension(strings.ToLower(filepath.Ext(path)))
+	return strings.HasPrefix(contentType, "image/")
 }
 
 func resetResolveSeedThumbnailPaths(minioStorage *storage.MinIOStorage, zipFiles []string) ([]string, error) {

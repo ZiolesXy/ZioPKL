@@ -30,6 +30,7 @@ func SetupRouter(container *Container, hub *websocket.Hub) *gin.Engine {
 	router.GET("/play/:id", container.GameHandler.ServeGameFile)
 	router.GET("/play/:id/*filepath", container.GameHandler.ServeGameFile)
 	router.GET("/games/thumbnail/*filepath", container.GameHandler.ServeThumbnail)
+	router.GET("/users/profile/*filepath", container.UserHandler.ServeProfile)
 
 	router.GET("/categories", container.GameHandler.ListCategories)
 
@@ -91,6 +92,7 @@ func SetupRouter(container *Container, hub *websocket.Hub) *gin.Engine {
 		users := protected.Group("/users")
 		{
 			users.GET("/me", container.UserHandler.Me)
+			users.PUT("/me", container.UserHandler.UpdateMe)
 		}
 
 		games := protected.Group("/games")
