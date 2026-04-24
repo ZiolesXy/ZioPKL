@@ -8,16 +8,16 @@ migrate:
 	go run ./seeders/migrate.go
 
 seed:
-	go run ./seeders/seed.go
+	go run ./seeders/System/seed/seed.go
 
 seed-games:
-	go run ./seeders/seed_games.go
+	go run ./seeders/System/seed_games/seed_games.go
 
 drop:
-	go run ./seeders/drop.go
+	go run ./seeders/System/drop/drop.go
 
 reset:
-	go run ./seeders/reset.go
+	go run ./seeders/System/reset/reset.go
 
 build:
 	go build -o $(APP_NAME) ./cmd
