@@ -28,10 +28,6 @@ func (s *AdminService) Dashboard() (*dto.DashboardStatsResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-	totalDevelopers, err := s.userRepo.CountByRole("DEVELOPER")
-	if err != nil {
-		return nil, err
-	}
 	totalGames, err := s.gameRepo.CountAll()
 	if err != nil {
 		return nil, err
@@ -45,7 +41,6 @@ func (s *AdminService) Dashboard() (*dto.DashboardStatsResponse, error) {
 
 	return &dto.DashboardStatsResponse{
 		TotalUsers:       totalUsers,
-		TotalDevelopers:  totalDevelopers,
 		TotalGames:       totalGames,
 		TotalActiveChats: totalActiveChats,
 	}, nil
